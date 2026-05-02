@@ -2,58 +2,75 @@ package com.codram.limitx;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
 import android.widget.TextView;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TarjetaResponse;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
-    private RecyclerView rvTarjetas;
-    private ProgressBar progressBar;
-    private TextView tvEmptyState;
+    private ViewPager2 viewPager;
+    private TabLayout tabLayout;
+    private TarjetasPagerAdapter pagerAdapter;
+    private TextView tvSaldoTotal;
     private SessionManager sessionManager;
-    private FloatingActionButton btnLogout, fabAdd; // Changed btnLogout type
+    private FloatingActionButton btnLogout, fabAdd;
+    private List<TarjetaResponse> listaTarjetasOriginal = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Step 1: Enable Edge-to-Edge
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Step 2: Setup Toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Step 3: Initialize views
         sessionManager = new SessionManager(this);
-        rvTarjetas = findViewById(R.id.rvTarjetas);
-        progressBar = findViewById(R.id.progressBar);
-        tvEmptyState = findViewById(R.id.tvEmptyState);
-        btnLogout = findViewById(R.id.btnLogout); // Now a FAB
+        viewPager = findViewById(R.id.viewPager);
+        tabLayout = findViewById(R.id.tabLayout);
+        tvSaldoTotal = findViewById(R.id.tvSaldoTotal);
+        btnLogout = findViewById(R.id.btnLogout);
         fabAdd = findViewById(R.id.fabAdd);
         
-        rvTarjetas.setLayoutManager(new LinearLayoutManager(this));
+        pagerAdapter = new TarjetasPagerAdapter(this);
+        viewPager.setAdapter(pagerAdapter);
 
-        // Step 4: Handle Insets
+        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
+            tab.setText(position == 0 ? "CUP" : "USD");
+        }).attach();
+
+        // Configurar listeners en fragmentos (estos se activarán cuando los fragmentos estén creados)
+        // Usamos Runnable para diferir si es necesario, pero loadTarjetas se llama en onResume
+        
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                actualizarSaldoTotal();
+            }
+        });
+
         handleWindowInsets();
 
-        // Step 5: Setup Listeners
         btnLogout.setOnClickListener(v -> {
             sessionManager.clearSession();
             Intent intent = new Intent(MainActivity.this, LoginActivity.class);
@@ -63,77 +80,137 @@ public class MainActivity extends AppCompatActivity {
 
         fabAdd.setOnClickListener(v -> {
             AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
+            bottomSheet.setOnTarjetaAddedListener(this::loadTarjetas);
             bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
         });
     }
     
-    private void handleWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
-            WindowInsetsCompat systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            
-            // Apply padding to the toolbar and recyclerview to avoid overlap
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
-            rvTarjetas.setPadding(0, 0, 0, systemBars.bottom);
-
-            // Adjust FAB margins
-            updateFabMargin(btnLogout, systemBars.bottom);
-            updateFabMargin(fabAdd, systemBars.bottom);
-
-            return WindowInsetsCompat.CONSUMED;
-        });
-    }
-
-    private void updateFabMargin(FloatingActionButton fab, int bottomInset) {
-        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
-        // Default margin is 16dp, we add the bottom inset to it
-        params.bottomMargin = (int) (16 * getResources().getDisplayMetrics().density) + bottomInset;
-        fab.setLayoutParams(params);
-    }
-
     @Override
     protected void onResume() {
         super.onResume();
         loadTarjetas();
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.sort_saldo) {
+            ordenarTarjetas("saldo");
+            return true;
+        } else if (id == R.id.sort_extraccion) {
+            ordenarTarjetas("extraccion");
+            return true;
+        } else if (id == R.id.sort_deposito) {
+            ordenarTarjetas("deposito");
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void actualizarSaldoTotal() {
+        int position = viewPager.getCurrentItem();
+        String monedaFiltro = (position == 0) ? "CUP" : "USD";
+
+        double total = 0;
+        if (listaTarjetasOriginal != null) {
+            for (TarjetaResponse tarjeta : listaTarjetasOriginal) {
+                if (tarjeta.getMoneda().equals(monedaFiltro)) {
+                    total += tarjeta.getSaldo_tarjeta();
+                }
+            }
+        }
+
+        java.text.DecimalFormat df = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(java.util.Locale.US);
+        java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        symbols.setGroupingSeparator(' ');
+        df.setDecimalFormatSymbols(symbols);
+        df.setMaximumFractionDigits(0);
+
+        tvSaldoTotal.setText("Total " + monedaFiltro + ": $" + df.format(total));
+    }
+
+    private void ordenarTarjetas(String criterio) {
+        if (listaTarjetasOriginal == null || listaTarjetasOriginal.isEmpty()) return;
+
+        Collections.sort(listaTarjetasOriginal, (t1, t2) -> {
+            switch (criterio) {
+                case "saldo":
+                    return Double.compare(t2.getSaldo_tarjeta(), t1.getSaldo_tarjeta());
+                case "extraccion":
+                    return Double.compare(t2.getExtraccion_disponible(), t1.getExtraccion_disponible());
+                case "deposito":
+                    return Double.compare(t2.getDeposito_disponible(), t1.getDeposito_disponible());
+                default:
+                    return 0;
+            }
+        });
+
+        distribuirTarjetas();
+        actualizarSaldoTotal();
+    }
+
     private void loadTarjetas() {
-        // This method remains the same as before
         showLoading(true);
         String token = "Bearer " + sessionManager.getToken();
+
         ApiClient.getService().getTarjetas(token).enqueue(new Callback<List<TarjetaResponse>>() {
             @Override
             public void onResponse(Call<List<TarjetaResponse>> call, Response<List<TarjetaResponse>> response) {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
-                    if (response.body().isEmpty()) {
-                        showEmptyState("Aún no tienes tarjetas añadidas.");
-                    } else {
-                        rvTarjetas.setVisibility(View.VISIBLE);
-                        tvEmptyState.setVisibility(View.GONE);
-                        rvTarjetas.setAdapter(new TarjetasAdapter(response.body()));
-                    }
-                } else {
-                    showEmptyState("Error al cargar las tarjetas.");
+                    listaTarjetasOriginal = response.body();
+                    ordenarTarjetas("saldo");
                 }
             }
             @Override
             public void onFailure(Call<List<TarjetaResponse>> call, Throwable t) {
                 showLoading(false);
-                showEmptyState("Error de red. Revisa tu conexión.");
             }
         });
     }
-    
-    private void showLoading(boolean isLoading) {
-        progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-        rvTarjetas.setVisibility(isLoading ? View.GONE : View.VISIBLE);
-        tvEmptyState.setVisibility(isLoading ? View.GONE : View.VISIBLE);
-        if(isLoading) tvEmptyState.setText("Cargando...");
+
+    private void distribuirTarjetas() {
+        List<TarjetaResponse> cup = new ArrayList<>();
+        List<TarjetaResponse> usd = new ArrayList<>();
+        for (TarjetaResponse t : listaTarjetasOriginal) {
+            if ("CUP".equals(t.getMoneda())) cup.add(t);
+            else usd.add(t);
+        }
+        
+        // Configurar listeners si aún no se han configurado
+        pagerAdapter.getCupFragment().setOnRefreshListener(this::loadTarjetas);
+        pagerAdapter.getUsdFragment().setOnRefreshListener(this::loadTarjetas);
+        pagerAdapter.getCupFragment().setTransactionListener(this::loadTarjetas);
+        pagerAdapter.getUsdFragment().setTransactionListener(this::loadTarjetas);
+
+        pagerAdapter.getCupFragment().updateData(cup);
+        pagerAdapter.getUsdFragment().updateData(usd);
     }
 
-    private void showEmptyState(String message) {
-        rvTarjetas.setVisibility(View.GONE);
-        tvEmptyState.setVisibility(View.VISIBLE);
-        tvEmptyState.setText(message);
+    private void handleWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
+            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
+            updateFabMargin(btnLogout, systemBars.bottom);
+            updateFabMargin(fabAdd, systemBars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
+    private void updateFabMargin(FloatingActionButton fab, int bottomInset) {
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+        params.bottomMargin = (int) (16 * getResources().getDisplayMetrics().density) + bottomInset;
+        fab.setLayoutParams(params);
+    }
+    
+    private void showLoading(boolean isLoading) {
+        pagerAdapter.getCupFragment().showLoading(isLoading);
+        pagerAdapter.getUsdFragment().showLoading(isLoading);
     }
 }
