@@ -38,8 +38,10 @@ android {
 dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
+    implementation(libs.swiperefreshlayout)
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
+    implementation(libs.viewpager2)
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     androidTestImplementation(libs.ext.junit)
