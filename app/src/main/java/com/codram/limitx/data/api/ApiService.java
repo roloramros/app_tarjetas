@@ -2,6 +2,7 @@ package com.codram.limitx.data.api;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
+import retrofit2.http.Header;
 import retrofit2.http.POST;
 
 public interface ApiService {
@@ -10,4 +11,10 @@ public interface ApiService {
 
     @POST("/usuarios")
     Call<UsuarioResponse> register(@Body UsuarioCreate request);
+
+    @POST("/tarjetas")
+    Call<TarjetaResponse> createTarjeta(
+        @Header("Authorization") String token,
+        @Body TarjetaRequest request
+    );
 }
