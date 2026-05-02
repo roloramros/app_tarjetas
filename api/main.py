@@ -178,3 +178,65 @@ async def listar_tarjetas(
 ):
     result = await db.execute(select(Tarjeta).where(Tarjeta.usuario_id == current_user.id))
     return result.scalars().all()
+
+@app.get("/tarjetas/{tarjeta_id}", response_model=TarjetaResponse)
+async def obtener_tarjeta(
+    tarjeta_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Tarjeta).where(Tarjeta.id == tarjeta_id, Tarjeta.usuario_id == current_user.id)
+    )
+    tarjeta = result.scalars().first()
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+    return tarjeta
+
+@app.put("/tarjetas/{tarjeta_id}", response_model=TarjetaResponse)
+async def actualizar_tarjeta(
+    tarjeta_id: uuid.UUID,
+    data: TarjetaUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Tarjeta).where(Tarjeta.id == tarjeta_id, Tarjeta.usuario_id == current_user.id)
+    )
+    tarjeta = result.scalars().first()
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+    
+    if data.nombre is not None:
+        tarjeta.nombre = data.nombre
+    if data.numero is not None:
+        tarjeta.numero = data.numero
+    if data.banco is not None:
+        tarjeta.banco = data.banco
+    if data.moneda is not None:
+        tarjeta.moneda = data.moneda
+    if data.limite_mensual is not None:
+        tarjeta.limite_mensual = data.limite_mensual
+    if data.activa is not None:
+        tarjeta.activa = data.activa
+        
+    await db.commit()
+    await db.refresh(tarjeta)
+    return tarjeta
+
+@app.delete("/tarjetas/{tarjeta_id}", status_code=200)
+async def eliminar_tarjeta(
+    tarjeta_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    result = await db.execute(
+        select(Tarjeta).where(Tarjeta.id == tarjeta_id, Tarjeta.usuario_id == current_user.id)
+    )
+    tarjeta = result.scalars().first()
+    if not tarjeta:
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+    
+    await db.delete(tarjeta)
+    await db.commit()
+    return {"msg": f"Tarjeta {tarjeta.nombre} eliminada"}
