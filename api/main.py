@@ -3,22 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 
 from database import engine, get_db, Base
-from models import Usuario, Tarjeta
+from models import Usuario, Tarjeta, Transaccion
 from schemas import (
     UsuarioCreate, UsuarioUpdate, UsuarioResponse,
     TokenResponse, LoginRequest,
-    TarjetaCreate, TarjetaUpdate, TarjetaResponse
+    TarjetaCreate, TarjetaUpdate, TarjetaResponse,
+    TransaccionCreate, TransaccionResponse
 )
 from utils import verify_password, hash_password, create_access_token, decode_token
 
-# Inicializar tablas (solo en desarrollo)
+# Inicializar tablas (ya creadas en BD)
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield
 
 app = FastAPI(title="API Nueva App", version="1.0.0", lifespan=lifespan)
@@ -83,7 +82,8 @@ async def crear_usuario(
     
     nuevo = Usuario(
         nombre=data.nombre,
-        password_hash=hash_password(data.password)
+        password_hash=hash_password(data.password),
+        suscripcion_hasta=datetime.now() + timedelta(days=30)
     )
     db.add(nuevo)
     await db.commit()
@@ -240,3 +240,69 @@ async def eliminar_tarjeta(
     await db.delete(tarjeta)
     await db.commit()
     return {"msg": f"Tarjeta {tarjeta.nombre} eliminada"}
+
+# === CRUD Transacciones ===
+@app.post("/transacciones", response_model=TransaccionResponse, status_code=201)
+async def crear_transaccion(
+    data: TransaccionCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Validar que la tarjeta pertenezca al usuario
+    result = await db.execute(
+        select(Tarjeta).where(Tarjeta.id == data.tarjeta_id, Tarjeta.usuario_id == current_user.id)
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+        
+    nueva = Transaccion(
+        tarjeta_id=data.tarjeta_id,
+        tipo=data.tipo,
+        monto=data.monto,
+        descripcion=data.descripcion,
+        subtipo=data.subtipo,
+        afecta_limite=data.afecta_limite,
+        fecha=data.fecha
+    )
+    db.add(nueva)
+    await db.commit()
+    await db.refresh(nueva)
+    return nueva
+
+@app.get("/tarjetas/{tarjeta_id}/transacciones", response_model=list[TransaccionResponse])
+async def listar_transacciones(
+    tarjeta_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Validar que la tarjeta pertenezca al usuario
+    result = await db.execute(
+        select(Tarjeta).where(Tarjeta.id == tarjeta_id, Tarjeta.usuario_id == current_user.id)
+    )
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+        
+    result = await db.execute(select(Transaccion).where(Transaccion.tarjeta_id == tarjeta_id).order_by(Transaccion.fecha.desc()))
+    return result.scalars().all()
+
+@app.get("/tarjetas/{tarjeta_id}/transacciones/mes", response_model=list[TransaccionResponse])
+async def listar_transacciones_mes(
+    tarjeta_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Validar acceso
+    result = await db.execute(select(Tarjeta).where(Tarjeta.id == tarjeta_id, Tarjeta.usuario_id == current_user.id))
+    if not result.scalars().first():
+        raise HTTPException(status_code=404, detail="Tarjeta no encontrada")
+        
+    # Filtrar por mes actual
+    now = datetime.now()
+    start_of_month = datetime(now.year, now.month, 1)
+    
+    result = await db.execute(
+        select(Transaccion)
+        .where(Transaccion.tarjeta_id == tarjeta_id, Transaccion.fecha >= start_of_month)
+        .order_by(Transaccion.fecha.desc())
+    )
+    return result.scalars().all()
