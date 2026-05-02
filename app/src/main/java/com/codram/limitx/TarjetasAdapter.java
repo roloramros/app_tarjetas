@@ -38,6 +38,8 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
 
     static class TarjetaViewHolder extends RecyclerView.ViewHolder {
         private TextView tvCardName, tvBankName, tvCardNumber, tvCardLimit;
+        private android.widget.ImageView ivCardBackground;
+        private View vOverlay;
 
         public TarjetaViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -45,6 +47,8 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             tvBankName = itemView.findViewById(R.id.tvBankName);
             tvCardNumber = itemView.findViewById(R.id.tvCardNumber);
             tvCardLimit = itemView.findViewById(R.id.tvCardLimit);
+            ivCardBackground = itemView.findViewById(R.id.ivCardBackground);
+            vOverlay = itemView.findViewById(R.id.vOverlay);
         }
 
         public void bind(TarjetaResponse tarjeta) {
@@ -53,6 +57,15 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             tvCardNumber.setText(obfuscateCardNumber(tarjeta.getNumero()));
             String limitText = String.format(Locale.US, "$%,.2f %s", tarjeta.getLimiteMensual(), tarjeta.getMoneda());
             tvCardLimit.setText(limitText);
+
+            if ("CLASICA".equalsIgnoreCase(tarjeta.getBanco())) {
+                ivCardBackground.setVisibility(View.VISIBLE);
+                vOverlay.setVisibility(View.VISIBLE);
+                ivCardBackground.setImageResource(R.drawable.clasica);
+            } else {
+                ivCardBackground.setVisibility(View.GONE);
+                vOverlay.setVisibility(View.GONE);
+            }
         }
 
         private String obfuscateCardNumber(String number) {
