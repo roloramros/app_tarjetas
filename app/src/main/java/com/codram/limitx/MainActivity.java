@@ -7,16 +7,19 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TarjetaResponse;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import java.text.DecimalFormat;
@@ -36,7 +39,8 @@ public class MainActivity extends AppCompatActivity {
     private TarjetasPagerAdapter pagerAdapter;
     private TextView tvSaldoTotal;
     private SessionManager sessionManager;
-    private FloatingActionButton btnLogout, fabAdd;
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
     private List<TarjetaResponse> listaTarjetasOriginal = new ArrayList<>();
 
     @Override
@@ -52,9 +56,32 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
         tvSaldoTotal = findViewById(R.id.tvSaldoTotal);
-        btnLogout = findViewById(R.id.btnLogout);
-        fabAdd = findViewById(R.id.fabAdd);
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
         
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                this, drawerLayout, toolbar,
+                R.string.navigation_drawer_open,
+                R.string.navigation_drawer_close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_add_card) {
+                AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
+                bottomSheet.setOnTarjetaAddedListener(this::loadTarjetas);
+                bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
+            } else if (id == R.id.nav_logout) {
+                sessionManager.clearSession();
+                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+
         pagerAdapter = new TarjetasPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
 
@@ -62,9 +89,6 @@ public class MainActivity extends AppCompatActivity {
             tab.setText(position == 0 ? "CUP" : "USD");
         }).attach();
 
-        // Configurar listeners en fragmentos (estos se activarán cuando los fragmentos estén creados)
-        // Usamos Runnable para diferir si es necesario, pero loadTarjetas se llama en onResume
-        
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
@@ -73,19 +97,15 @@ public class MainActivity extends AppCompatActivity {
         });
 
         handleWindowInsets();
+    }
 
-        btnLogout.setOnClickListener(v -> {
-            sessionManager.clearSession();
-            Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-        });
-
-        fabAdd.setOnClickListener(v -> {
-            AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
-            bottomSheet.setOnTarjetaAddedListener(this::loadTarjetas);
-            bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
-        });
+    @Override
+    public void onBackPressed() {
+        if (drawerLayout != null && drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
     }
     
     @Override
@@ -142,30 +162,32 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ordenarTarjetas(String criterio) {
-        if (criterio == null || listaTarjetasOriginal == null || listaTarjetasOriginal.isEmpty()) return;
+        if (listaTarjetasOriginal == null) return;
 
-        Collections.sort(listaTarjetasOriginal, (t1, t2) -> {
-            if (t1 == null && t2 == null) return 0;
-            if (t1 == null) return 1;
-            if (t2 == null) return -1;
+        if (criterio != null && !listaTarjetasOriginal.isEmpty()) {
+            Collections.sort(listaTarjetasOriginal, (t1, t2) -> {
+                if (t1 == null && t2 == null) return 0;
+                if (t1 == null) return 1;
+                if (t2 == null) return -1;
 
-            switch (criterio) {
-                case "nombre":
-                    String n1 = t1.getNombre() != null ? t1.getNombre() : "";
-                    String n2 = t2.getNombre() != null ? t2.getNombre() : "";
-                    return n1.compareToIgnoreCase(n2);
-                case "saldo":
-                    return Double.compare(t2.getSaldo_tarjeta(), t1.getSaldo_tarjeta());
-                case "extraccion":
-                    return Double.compare(t2.getExtraccion_disponible(), t1.getExtraccion_disponible());
-                case "deposito":
-                    return Double.compare(t2.getDeposito_disponible(), t1.getDeposito_disponible());
-                default:
-                    return 0;
-            }
-        });
+                switch (criterio) {
+                    case "nombre":
+                        String n1 = t1.getNombre() != null ? t1.getNombre() : "";
+                        String n2 = t2.getNombre() != null ? t2.getNombre() : "";
+                        return n1.compareToIgnoreCase(n2);
+                    case "saldo":
+                        return Double.compare(t2.getSaldo_tarjeta(), t1.getSaldo_tarjeta());
+                    case "extraccion":
+                        return Double.compare(t2.getExtraccion_disponible(), t1.getExtraccion_disponible());
+                    case "deposito":
+                        return Double.compare(t2.getDeposito_disponible(), t1.getDeposito_disponible());
+                    default:
+                        return 0;
+                }
+            });
+            sessionManager.saveSortOrder(criterio);
+        }
 
-        sessionManager.saveSortOrder(criterio);
         distribuirTarjetas();
         actualizarSaldoTotal();
     }
@@ -211,15 +233,16 @@ public class MainActivity extends AppCompatActivity {
         pagerAdapter.getCupFragment().updateData(cup);
         pagerAdapter.getUsdFragment().updateData(usd);
     }
-private void handleWindowInsets() {
-    ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
-        androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-        v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-        return WindowInsetsCompat.CONSUMED;
-    });
-}
 
-private void showLoading(boolean isLoading) {
+    private void handleWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
+            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+    }
+
+    private void showLoading(boolean isLoading) {
         pagerAdapter.getCupFragment().showLoading(isLoading);
         pagerAdapter.getUsdFragment().showLoading(isLoading);
     }
