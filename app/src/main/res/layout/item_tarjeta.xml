@@ -10,23 +10,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="H,16:9">
-
-        <ImageView
-            android:id="@+id/ivCardBackground"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="centerCrop"
-            android:visibility="gone"
-            tools:src="@drawable/clasica" />
-
-        <View
-            android:id="@+id/vOverlay"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#80000000"
-            android:visibility="gone" />
+        android:layout_height="wrap_content"
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/tvCardName"
@@ -34,18 +19,20 @@
             android:layout_height="wrap_content"
             android:text="Nombre de la Tarjeta"
             android:textAppearance="?attr/textAppearanceHeadline6"
+            app:layout_constraintHorizontal_bias="0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/tvBankName" />
+            app:layout_constraintEnd_toStartOf="@id/tvCardNumber" />
 
-        <TextView
-            android:id="@+id/tvBankName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="BANCO"
-            android:textAppearance="?attr/textAppearanceCaption"
+        <ImageView
+            android:id="@+id/ivCardIcon"
+            android:layout_width="60dp"
+            android:layout_height="40dp"
+            android:src="@drawable/metro"
+            android:scaleType="fitCenter"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:contentDescription="Icono de Tarjeta" />
 
         <TextView
             android:id="@+id/tvCardNumber"
@@ -53,20 +40,49 @@
             android:layout_height="wrap_content"
             android:text="**** **** **** 1234"
             android:textAppearance="?attr/textAppearanceBody1"
-            android:layout_marginTop="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvCardName"
+            app:layout_constraintBottom_toBottomOf="@id/tvCardName" />
+
+        <TextView
+            android:id="@+id/tvSaldoTarjeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Saldo en Tarjeta: "
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:layout_marginTop="16dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvCardName" />
 
         <TextView
-            android:id="@+id/tvCardLimit"
+            android:id="@+id/tvExtraccionDisponible"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="$10,000.00 CUP"
+            android:text="Extracción Disponible: "
             android:textAppearance="?attr/textAppearanceBody2"
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvSaldoTarjeta" />
+
+        <TextView
+            android:id="@+id/tvDepositoDisponible"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Depósito Disponible: "
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:layout_marginTop="4dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvExtraccionDisponible" />
+
+        <TextView
+            android:id="@+id/tvBankName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BANCO"
+            android:textAppearance="?attr/textAppearanceCaption"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/tvCardNumber"
-            app:layout_constraintBottom_toBottomOf="@id/tvCardNumber" />
+            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
