@@ -11,7 +11,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Nombre de la tarjeta"
+        android:hint="@string/hint_nombre_tarjeta"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etNombre"
@@ -24,7 +24,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Número de tarjeta"
+        android:hint="@string/hint_numero_tarjeta"
         android:layout_marginBottom="16dp">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etNumero"
@@ -36,7 +36,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Banco"
+        android:text="@string/label_banco"
         android:layout_marginBottom="4dp" />
     <Spinner
         android:id="@+id/spinnerBanco"
@@ -47,7 +47,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Moneda"
+        android:text="@string/label_moneda"
         android:layout_marginBottom="4dp" />
     <Spinner
         android:id="@+id/spinnerMoneda"
@@ -59,7 +59,7 @@
         android:id="@+id/swTcp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Es tarjeta TCP"
+        android:text="@string/switch_tarjeta_tcp"
         android:layout_marginBottom="24dp" />
 
 </LinearLayout>
