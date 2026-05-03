@@ -20,9 +20,13 @@ import com.codram.limitx.data.api.TarjetaResponse;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -123,14 +127,14 @@ public class MainActivity extends AppCompatActivity {
         double total = 0;
         if (listaTarjetasOriginal != null) {
             for (TarjetaResponse tarjeta : listaTarjetasOriginal) {
-                if (tarjeta.getMoneda().equals(monedaFiltro)) {
+                if (monedaFiltro.equals(tarjeta.getMoneda())) {
                     total += tarjeta.getSaldo_tarjeta();
                 }
             }
         }
 
-        java.text.DecimalFormat df = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(java.util.Locale.US);
-        java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+        DecimalFormat df = (DecimalFormat) NumberFormat.getNumberInstance(Locale.US);
+        DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
         symbols.setGroupingSeparator(' ');
         df.setDecimalFormatSymbols(symbols);
         df.setMaximumFractionDigits(0);
@@ -172,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
             public void onResponse(Call<List<TarjetaResponse>> call, Response<List<TarjetaResponse>> response) {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
-                    listaTarjetasOriginal = response.body();
+                    listaTarjetasOriginal = new ArrayList<>(response.body());
                     String savedOrder = sessionManager.getSortOrder();
                     ordenarTarjetas(savedOrder);
                 }
