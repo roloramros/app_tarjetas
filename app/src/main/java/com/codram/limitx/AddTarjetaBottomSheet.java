@@ -16,6 +16,7 @@ import com.codram.limitx.data.api.TarjetaRequest;
 import com.codram.limitx.data.api.TarjetaResponse;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -32,6 +33,7 @@ public class AddTarjetaBottomSheet extends DialogFragment {
     private OnTarjetaAddedListener listener;
     private TextInputEditText etNombre, etNumero;
     private Spinner spinnerBanco, spinnerMoneda;
+    private SwitchMaterial swTcp;
     private String[] bancos = {"BPA", "BANDEC", "METRO", "CLASICA", "TROPICAL"};
     private String[] monedas = {"CUP", "USD"};
 
@@ -48,6 +50,7 @@ public class AddTarjetaBottomSheet extends DialogFragment {
         etNumero = view.findViewById(R.id.etNumero);
         spinnerBanco = view.findViewById(R.id.spinnerBanco);
         spinnerMoneda = view.findViewById(R.id.spinnerMoneda);
+        swTcp = view.findViewById(R.id.swTcp);
 
         setupSpinners(view);
 
@@ -103,7 +106,11 @@ public class AddTarjetaBottomSheet extends DialogFragment {
             return;
         }
 
-        double limite = moneda.equals("CUP") ? 120000.0 : 5000.0;
+        double limite = 0.0;
+        if (!swTcp.isChecked()) {
+            limite = moneda.equals("CUP") ? 120000.0 : 5000.0;
+        }
+        
         TarjetaRequest request = new TarjetaRequest(nombre, numero, banco, moneda, limite, true);
         
         SessionManager sessionManager = new SessionManager(getContext());
