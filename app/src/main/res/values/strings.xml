@@ -7,4 +7,9 @@
     <string name="extraccion_disponible_label">Extracción Disponible: </string>
     <string name="deposito_disponible_label">Depósito Disponible: </string>
     <string name="bank_name_placeholder">BANCO</string>
+    <string name="menu_sort_title">Ordenar</string>
+    <string name="menu_sort_name">Nombre (A-Z)</string>
+    <string name="menu_sort_balance">Saldo en Tarjeta</string>
+    <string name="menu_sort_extraction">Extracción Disponible</string>
+    <string name="menu_sort_deposit">Depósito Disponible</string>
 </resources>

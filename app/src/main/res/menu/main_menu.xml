@@ -3,22 +3,22 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
         android:id="@+id/action_sort"
-        android:title="Ordenar"
+        android:title="@string/menu_sort_title"
         android:icon="@android:drawable/ic_menu_sort_by_size"
         app:showAsAction="ifRoom">
         <menu>
             <item
                 android:id="@+id/sort_nombre"
-                android:title="Nombre (A-Z)" />
+                android:title="@string/menu_sort_name" />
             <item
                 android:id="@+id/sort_saldo"
-                android:title="Saldo en Tarjeta" />
+                android:title="@string/menu_sort_balance" />
             <item
                 android:id="@+id/sort_extraccion"
-                android:title="Extracción Disponible" />
+                android:title="@string/menu_sort_extraction" />
             <item
                 android:id="@+id/sort_deposito"
-                android:title="Depósito Disponible" />
+                android:title="@string/menu_sort_deposit" />
         </menu>
     </item>
 </menu>
