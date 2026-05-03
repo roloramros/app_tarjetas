@@ -8,6 +8,7 @@ public class SessionManager {
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_KEEP_LOGGED_IN = "keep_logged_in";
     private static final String KEY_SORT_ORDER = "sort_order";
+    private static final String KEY_SUBSCRIPTION_ACTIVE = "subscription_active";
 
     private SharedPreferences prefs;
 
@@ -41,5 +42,13 @@ public class SessionManager {
 
     public String getSortOrder() {
         return prefs.getString(KEY_SORT_ORDER, "saldo"); // "saldo" is default
+    }
+
+    public void setSubscriptionActive(boolean isActive) {
+        prefs.edit().putBoolean(KEY_SUBSCRIPTION_ACTIVE, isActive).apply();
+    }
+
+    public boolean isSubscriptionActive() {
+        return prefs.getBoolean(KEY_SUBSCRIPTION_ACTIVE, true); // Default to true or handle carefully
     }
 }
