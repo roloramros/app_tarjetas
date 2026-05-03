@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">LimitTx</string>
+    <string name="card_icon_description">Icono de Tarjeta</string>
+    <string name="card_name_placeholder">Nombre de la Tarjeta</string>
+    <string name="card_number_placeholder">**** **** **** 1234</string>
+    <string name="saldo_tarjeta_label">Saldo en Tarjeta: </string>
+    <string name="extraccion_disponible_label">Extracción Disponible: </string>
+    <string name="deposito_disponible_label">Depósito Disponible: </string>
+    <string name="bank_name_placeholder">BANCO</string>
+</resources>
