@@ -53,6 +53,13 @@
         android:id="@+id/spinnerMoneda"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/swTcp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Es tarjeta TCP"
         android:layout_marginBottom="24dp" />
 
 </LinearLayout>
