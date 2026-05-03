@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -201,12 +202,13 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
     }
 
     static class TarjetaViewHolder extends RecyclerView.ViewHolder {
-        private TextView tvCardName, tvBankName, tvCardNumber, tvSaldoTarjeta, tvExtraccionDisponible, tvDepositoDisponible;
+        private TextView tvCardName, tvCardNumber, tvSaldoTarjeta, tvExtraccionDisponible, tvDepositoDisponible;
+        private ImageView ivCardIcon;
 
         public TarjetaViewHolder(@NonNull View itemView) {
             super(itemView);
             tvCardName = itemView.findViewById(R.id.tvCardName);
-            tvBankName = itemView.findViewById(R.id.tvBankName);
+            ivCardIcon = itemView.findViewById(R.id.ivCardIcon);
             tvCardNumber = itemView.findViewById(R.id.tvCardNumber);
             tvSaldoTarjeta = itemView.findViewById(R.id.tvSaldoTarjeta);
             tvExtraccionDisponible = itemView.findViewById(R.id.tvExtraccionDisponible);
@@ -215,7 +217,35 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
 
         public void bind(TarjetaResponse tarjeta) {
             tvCardName.setText(tarjeta.getNombre());
-            tvBankName.setText(tarjeta.getBanco());
+            
+            // Set dynamic icon
+            String bancoStr = tarjeta.getBanco();
+            int iconResId = R.drawable.clasica; // Default fallback
+            if (bancoStr != null) {
+                String bancoLower = bancoStr.toLowerCase().trim();
+                switch (bancoLower) {
+                    case "bpa":
+                        iconResId = R.drawable.bpa;
+                        break;
+                    case "metro":
+                        iconResId = R.drawable.metro;
+                        break;
+                    case "bandec":
+                        iconResId = R.drawable.bandec;
+                        break;
+                    case "tropical":
+                        iconResId = R.drawable.tropical;
+                        break;
+                    case "clasica":
+                        iconResId = R.drawable.clasica;
+                        break;
+                    default:
+                        iconResId = R.drawable.clasica;
+                        break;
+                }
+            }
+            ivCardIcon.setImageResource(iconResId);
+
             tvCardNumber.setText(obfuscateCardNumber(tarjeta.getNumero()));
 
             java.text.DecimalFormat df = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(Locale.US);
