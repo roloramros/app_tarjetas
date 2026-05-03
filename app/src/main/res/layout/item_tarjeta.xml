@@ -27,8 +27,8 @@
             android:id="@+id/ivCardIcon"
             android:layout_width="60dp"
             android:layout_height="40dp"
-            android:src="@drawable/metro"
             android:scaleType="fitCenter"
+            android:alpha="0.4"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             android:contentDescription="@string/card_icon_description" />
@@ -72,16 +72,6 @@
             android:layout_marginTop="4dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvExtraccionDisponible" />
-
-        <TextView
-            android:id="@+id/tvBankName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/bank_name_placeholder"
-            android:textAppearance="?attr/textAppearanceCaption"
-            android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>
