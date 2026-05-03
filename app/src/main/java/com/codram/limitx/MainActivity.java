@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -127,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         double total = 0;
         if (listaTarjetasOriginal != null) {
             for (TarjetaResponse tarjeta : listaTarjetasOriginal) {
-                if (monedaFiltro.equals(tarjeta.getMoneda())) {
+                if (tarjeta != null && monedaFiltro.equals(tarjeta.getMoneda())) {
                     total += tarjeta.getSaldo_tarjeta();
                 }
             }
@@ -143,9 +142,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void ordenarTarjetas(String criterio) {
-        if (listaTarjetasOriginal == null || listaTarjetasOriginal.isEmpty()) return;
+        if (criterio == null || listaTarjetasOriginal == null || listaTarjetasOriginal.isEmpty()) return;
 
         Collections.sort(listaTarjetasOriginal, (t1, t2) -> {
+            if (t1 == null && t2 == null) return 0;
+            if (t1 == null) return 1;
+            if (t2 == null) return -1;
+
             switch (criterio) {
                 case "nombre":
                     String n1 = t1.getNombre() != null ? t1.getNombre() : "";
@@ -191,9 +194,12 @@ public class MainActivity extends AppCompatActivity {
     private void distribuirTarjetas() {
         List<TarjetaResponse> cup = new ArrayList<>();
         List<TarjetaResponse> usd = new ArrayList<>();
-        for (TarjetaResponse t : listaTarjetasOriginal) {
-            if ("CUP".equals(t.getMoneda())) cup.add(t);
-            else usd.add(t);
+        if (listaTarjetasOriginal != null) {
+            for (TarjetaResponse t : listaTarjetasOriginal) {
+                if (t == null) continue;
+                if ("CUP".equals(t.getMoneda())) cup.add(t);
+                else usd.add(t);
+            }
         }
         
         // Configurar listeners si aún no se han configurado
