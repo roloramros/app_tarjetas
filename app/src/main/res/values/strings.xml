@@ -17,6 +17,7 @@
     <string name="action_vew_history">Ver Historial de Transacciones</string>
     <string name="action_windows_config">Configurar Pestañas</string>
     <string name="action_logout">Cerrar Sesión</string>
+    <string name="nav_header_welcome">Bienvenido a LimiTx</string>
     <string name="navigation_drawer_open">Abrir menú de navegación</string>
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>
 </resources>
