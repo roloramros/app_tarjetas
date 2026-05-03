@@ -100,7 +100,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.sort_saldo) {
+        if (id == R.id.sort_nombre) {
+            ordenarTarjetas("nombre");
+            return true;
+        } else if (id == R.id.sort_saldo) {
             ordenarTarjetas("saldo");
             return true;
         } else if (id == R.id.sort_extraccion) {
@@ -140,6 +143,10 @@ public class MainActivity extends AppCompatActivity {
 
         Collections.sort(listaTarjetasOriginal, (t1, t2) -> {
             switch (criterio) {
+                case "nombre":
+                    String n1 = t1.getNombre() != null ? t1.getNombre() : "";
+                    String n2 = t2.getNombre() != null ? t2.getNombre() : "";
+                    return n1.compareToIgnoreCase(n2);
                 case "saldo":
                     return Double.compare(t2.getSaldo_tarjeta(), t1.getSaldo_tarjeta());
                 case "extraccion":
@@ -151,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        sessionManager.saveSortOrder(criterio);
         distribuirTarjetas();
         actualizarSaldoTotal();
     }
@@ -165,7 +173,8 @@ public class MainActivity extends AppCompatActivity {
                 showLoading(false);
                 if (response.isSuccessful() && response.body() != null) {
                     listaTarjetasOriginal = response.body();
-                    ordenarTarjetas("saldo");
+                    String savedOrder = sessionManager.getSortOrder();
+                    ordenarTarjetas(savedOrder);
                 }
             }
             @Override
@@ -192,24 +201,15 @@ public class MainActivity extends AppCompatActivity {
         pagerAdapter.getCupFragment().updateData(cup);
         pagerAdapter.getUsdFragment().updateData(usd);
     }
+private void handleWindowInsets() {
+    ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
+        androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+        v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+        return WindowInsetsCompat.CONSUMED;
+    });
+}
 
-    private void handleWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.coordinatorLayout), (v, insets) -> {
-            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0);
-            updateFabMargin(btnLogout, systemBars.bottom);
-            updateFabMargin(fabAdd, systemBars.bottom);
-            return WindowInsetsCompat.CONSUMED;
-        });
-    }
-
-    private void updateFabMargin(FloatingActionButton fab, int bottomInset) {
-        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
-        params.bottomMargin = (int) (16 * getResources().getDisplayMetrics().density) + bottomInset;
-        fab.setLayoutParams(params);
-    }
-    
-    private void showLoading(boolean isLoading) {
+private void showLoading(boolean isLoading) {
         pagerAdapter.getCupFragment().showLoading(isLoading);
         pagerAdapter.getUsdFragment().showLoading(isLoading);
     }
