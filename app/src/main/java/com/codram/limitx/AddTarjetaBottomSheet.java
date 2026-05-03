@@ -14,40 +14,60 @@ import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TarjetaRequest;
 import com.codram.limitx.data.api.TarjetaResponse;
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class AddTarjetaBottomSheet extends BottomSheetDialogFragment {
+import androidx.fragment.app.DialogFragment;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-    private TextInputEditText etNombre, etNumero, etLimite;
+public class AddTarjetaBottomSheet extends DialogFragment {
+
+    public interface OnTarjetaAddedListener {
+        void onTarjetaAdded();
+    }
+
+    private OnTarjetaAddedListener listener;
+    private TextInputEditText etNombre, etNumero;
     private Spinner spinnerBanco, spinnerMoneda;
     private String[] bancos = {"BPA", "BANDEC", "METRO", "CLASICA", "TROPICAL"};
     private String[] monedas = {"CUP", "USD"};
 
-    @Nullable
+    public void setOnTarjetaAddedListener(OnTarjetaAddedListener listener) {
+        this.listener = listener;
+    }
+
+    @NonNull
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.layout_add_tarjeta, container, false);
+    public android.app.Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.layout_add_tarjeta, null);
 
         etNombre = view.findViewById(R.id.etNombre);
         etNumero = view.findViewById(R.id.etNumero);
-        etLimite = view.findViewById(R.id.etLimite);
         spinnerBanco = view.findViewById(R.id.spinnerBanco);
         spinnerMoneda = view.findViewById(R.id.spinnerMoneda);
-        MaterialButton btnSave = view.findViewById(R.id.btnSave);
 
-        setupSpinners();
+        setupSpinners(view);
 
-        btnSave.setOnClickListener(v -> saveTarjeta());
+        android.app.Dialog dialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Añadir Nueva Tarjeta")
+                .setView(view)
+                .setPositiveButton("GUARDAR TARJETA", null)
+                .setNegativeButton("Cancelar", null)
+                .create();
+        
+        dialog.setCanceledOnTouchOutside(false);
+        
+        dialog.setOnShowListener(d -> {
+            ((androidx.appcompat.app.AlertDialog) d).getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> saveTarjeta());
+        });
 
-        return view;
+        return dialog;
     }
 
-    private void setupSpinners() {
+    private void setupSpinners(View view) {
         ArrayAdapter<String> bancoAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, bancos);
         bancoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerBanco.setAdapter(bancoAdapter);
@@ -77,14 +97,13 @@ public class AddTarjetaBottomSheet extends BottomSheetDialogFragment {
         String numero = etNumero.getText().toString().trim();
         String banco = spinnerBanco.getSelectedItem().toString();
         String moneda = spinnerMoneda.getSelectedItem().toString();
-        String limiteStr = etLimite.getText().toString().trim();
 
-        if (nombre.isEmpty() || numero.isEmpty() || limiteStr.isEmpty()) {
+        if (nombre.isEmpty() || numero.isEmpty()) {
             Toast.makeText(getContext(), "Por favor rellena todos los campos", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double limite = Double.parseDouble(limiteStr);
+        double limite = moneda.equals("CUP") ? 120000.0 : 5000.0;
         TarjetaRequest request = new TarjetaRequest(nombre, numero, banco, moneda, limite, true);
         
         SessionManager sessionManager = new SessionManager(getContext());
@@ -95,6 +114,7 @@ public class AddTarjetaBottomSheet extends BottomSheetDialogFragment {
             public void onResponse(Call<TarjetaResponse> call, Response<TarjetaResponse> response) {
                 if (response.isSuccessful()) {
                     Toast.makeText(getContext(), "Tarjeta añadida con éxito", Toast.LENGTH_SHORT).show();
+                    if (listener != null) listener.onTarjetaAdded();
                     dismiss();
                 } else {
                     Toast.makeText(getContext(), "Error al añadir tarjeta: " + response.message(), Toast.LENGTH_SHORT).show();

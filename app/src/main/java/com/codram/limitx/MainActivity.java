@@ -123,23 +123,14 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null) {
                     boolean isActive = response.body().isSuscripcionActiva();
                     sessionManager.setSubscriptionActive(isActive);
-                    updateTabsVisibility(isActive);
-                    // if (pagerAdapter != null) {
-                    //     pagerAdapter.setSubscriptionActive(isActive);
-                    // }
+                    if (pagerAdapter != null) {
+                        pagerAdapter.setSubscriptionActive(isActive);
+                    }
                 }
             }
             @Override
             public void onFailure(Call<com.codram.limitx.data.api.UsuarioResponse> call, Throwable t) {}
         });
-    }
-
-    private void updateTabsVisibility(boolean isActive) {
-        if (!isActive) {
-            if (tabLayout.getTabCount() > 1) {
-                tabLayout.removeTabAt(1);
-            }
-        }
     }
 
     @Override

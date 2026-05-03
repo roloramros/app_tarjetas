@@ -68,61 +68,73 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
         TarjetaResponse tarjeta = tarjetas.get(position);
         holder.bind(tarjeta);
 
-        holder.itemView.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(v.getContext(), v);
-            popup.getMenu().add("Depósito");
-            popup.getMenu().add("Extracción");
-            popup.setOnMenuItemClickListener(item -> {
-                mostrarDialogoTransaccion(v.getContext(), item.getTitle().toString(), tarjeta);
-                return true;
-            });
-            popup.show();
-        });
+        boolean isDisabled = !isSubscriptionActive && position > 0;
 
-        holder.itemView.setOnLongClickListener(v -> {
-            PopupMenu popup = new PopupMenu(v.getContext(), v);
-            popup.getMenu().add("Ver Historial");
-            popup.getMenu().add("Ajustar Saldo");
-            popup.getMenu().add("Eliminar");
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getTitle().equals("Ver Historial")) {
-                    android.content.Intent intent = new android.content.Intent(v.getContext(), HistorialActivity.class);
-                    intent.putExtra("TARJETA_ID", tarjeta.getId().toString());
-                    v.getContext().startActivity(intent);
-                } else if (item.getTitle().equals("Eliminar")) {
-                    new MaterialAlertDialogBuilder(v.getContext())
-                        .setTitle("Confirmar eliminación")
-                        .setMessage("¿Estás seguro de que deseas eliminar esta tarjeta? Esta operación es irreversible y se perderá toda la información relacionada con esta tarjeta del historial del sistema.")
-                        .setPositiveButton("Eliminar", (dialog, which) -> {
-                            String token = new SessionManager(v.getContext()).getToken();
-                            ApiClient.getService().eliminarTarjeta("Bearer " + token, tarjeta.getId()).enqueue(new Callback<Void>() {
-                                @Override
-                                public void onResponse(Call<Void> call, Response<Void> response) {
-                                    if (response.isSuccessful()) {
-                                        Toast.makeText(v.getContext(), "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
-                                        tarjetas.remove(holder.getAdapterPosition());
-                                        notifyItemRemoved(holder.getAdapterPosition());
-                                        if (transactionListener != null) transactionListener.onTransactionAdded(); // Refrescar saldo total
-                                    } else {
-                                        Toast.makeText(v.getContext(), "Error al eliminar", Toast.LENGTH_SHORT).show();
-                                    }
-                                }
-                                @Override
-                                public void onFailure(Call<Void> call, Throwable t) {
-                                    Toast.makeText(v.getContext(), "Error de red", Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                        })
-                        .setNegativeButton("Cancelar", null)
-                        .show();
-                } else {
-                    Toast.makeText(v.getContext(), item.getTitle() + " seleccionado", Toast.LENGTH_SHORT).show();
-                }
+        if (isDisabled) {
+            holder.itemView.setAlpha(0.5f);
+            holder.itemView.setOnClickListener(v -> Toast.makeText(v.getContext(), "Requiere suscripción activa", Toast.LENGTH_SHORT).show());
+            holder.itemView.setOnLongClickListener(v -> {
+                Toast.makeText(v.getContext(), "Requiere suscripción activa", Toast.LENGTH_SHORT).show();
                 return true;
             });
-            popup.show();
-            return true;
-        });
+        } else {
+            holder.itemView.setAlpha(1.0f);
+            holder.itemView.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(v.getContext(), v);
+                popup.getMenu().add("Depósito");
+                popup.getMenu().add("Extracción");
+                popup.setOnMenuItemClickListener(item -> {
+                    mostrarDialogoTransaccion(v.getContext(), item.getTitle().toString(), tarjeta);
+                    return true;
+                });
+                popup.show();
+            });
+
+            holder.itemView.setOnLongClickListener(v -> {
+                PopupMenu popup = new PopupMenu(v.getContext(), v);
+                popup.getMenu().add("Ver Historial");
+                popup.getMenu().add("Ajustar Saldo");
+                popup.getMenu().add("Eliminar");
+                popup.setOnMenuItemClickListener(item -> {
+                    if (item.getTitle().equals("Ver Historial")) {
+                        android.content.Intent intent = new android.content.Intent(v.getContext(), HistorialActivity.class);
+                        intent.putExtra("TARJETA_ID", tarjeta.getId().toString());
+                        v.getContext().startActivity(intent);
+                    } else if (item.getTitle().equals("Eliminar")) {
+                        new MaterialAlertDialogBuilder(v.getContext())
+                            .setTitle("Confirmar eliminación")
+                            .setMessage("¿Estás seguro de que deseas eliminar esta tarjeta? Esta operación es irreversible y se perderá toda la información relacionada con esta tarjeta del historial del sistema.")
+                            .setPositiveButton("Eliminar", (dialog, which) -> {
+                                String token = new SessionManager(v.getContext()).getToken();
+                                ApiClient.getService().eliminarTarjeta("Bearer " + token, tarjeta.getId()).enqueue(new Callback<Void>() {
+                                    @Override
+                                    public void onResponse(Call<Void> call, Response<Void> response) {
+                                        if (response.isSuccessful()) {
+                                            Toast.makeText(v.getContext(), "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
+                                            tarjetas.remove(holder.getAdapterPosition());
+                                            notifyItemRemoved(holder.getAdapterPosition());
+                                            if (transactionListener != null) transactionListener.onTransactionAdded(); // Refrescar saldo total
+                                        } else {
+                                            Toast.makeText(v.getContext(), "Error al eliminar", Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                    @Override
+                                    public void onFailure(Call<Void> call, Throwable t) {
+                                        Toast.makeText(v.getContext(), "Error de red", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            })
+                            .setNegativeButton("Cancelar", null)
+                            .show();
+                    } else {
+                        Toast.makeText(v.getContext(), item.getTitle() + " seleccionado", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                });
+                popup.show();
+                return true;
+            });
+        }
     }
 
     private void mostrarDialogoTransaccion(Context context, String tipo, TarjetaResponse tarjeta) {

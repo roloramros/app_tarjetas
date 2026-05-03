@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal
 import uuid
 
 from database import engine, get_db, Base
@@ -150,6 +151,12 @@ async def eliminar_usuario(
     await db.commit()
     return {"msg": f"Usuario {user.nombre} eliminado"}
 
+@app.get("/usuarios/me", response_model=UsuarioResponse)
+async def obtener_usuario_actual(
+    current_user: Usuario = Depends(get_current_user)
+):
+    return current_user
+
 # === CRUD Tarjetas ===
 @app.post("/tarjetas", response_model=TarjetaResponse, status_code=201)
 async def crear_tarjeta(
@@ -176,9 +183,40 @@ async def listar_tarjetas(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    result = await db.execute(select(Tarjeta).where(Tarjeta.usuario_id == current_user.id))
-    return result.scalars().all()
+    # Definir inicio del mes actual para Extracción Disponible
+    now = datetime.now()
+    inicio_mes = datetime(now.year, now.month, 1)
 
+    # Query para traer tarjetas con sus cálculos
+    # saldo_total: Entradas - Salidas totales (histórico)
+    # consumo_mes: Salidas que afectan límite en el mes actual
+    query = select(
+        Tarjeta,
+        func.sum(case((Transaccion.tipo == 'entrada', Transaccion.monto), else_=-Transaccion.monto)).label("saldo_total"),
+        func.sum(case((
+            (Transaccion.tipo == 'salida') & 
+            (Transaccion.afecta_limite == True) & 
+            (Transaccion.fecha >= inicio_mes), 
+            Transaccion.monto
+        ), else_=0)).label("consumo_mes")
+    ).outerjoin(Transaccion).where(Tarjeta.usuario_id == current_user.id).group_by(Tarjeta.id)
+
+    result = await db.execute(query)
+    tarjetas_calculadas = []
+    for tarjeta, saldo_total, consumo_mes in result:
+        t_dict = TarjetaResponse.model_validate(tarjeta).model_dump()
+
+        saldo_t = saldo_total if saldo_total is not None else Decimal('0.00')
+        consumo_m = consumo_mes if consumo_mes is not None else Decimal('0.00')
+
+        # Cálculos solicitados
+        t_dict["saldo_tarjeta"] = saldo_t
+        t_dict["extraccion_disponible"] = tarjeta.limite_mensual - consumo_m
+        t_dict["deposito_disponible"] = tarjeta.limite_mensual - saldo_t - consumo_m
+        
+        tarjetas_calculadas.append(t_dict)
+
+    return tarjetas_calculadas
 @app.get("/tarjetas/{tarjeta_id}", response_model=TarjetaResponse)
 async def obtener_tarjeta(
     tarjeta_id: uuid.UUID,
@@ -303,6 +341,6 @@ async def listar_transacciones_mes(
     result = await db.execute(
         select(Transaccion)
         .where(Transaccion.tarjeta_id == tarjeta_id, Transaccion.fecha >= start_of_month)
-        .order_by(Transaccion.fecha.desc())
+        .order_by(Transaccion.fecha.asc())
     )
     return result.scalars().all()

@@ -53,4 +53,25 @@ class TarjetaUpdate(BaseModel):
 class TarjetaResponse(TarjetaBase):
     id: uuid.UUID
     usuario_id: uuid.UUID
+    saldo_tarjeta: Optional[Decimal] = Decimal('0.00')
+    extraccion_disponible: Optional[Decimal] = Decimal('0.00')
+    deposito_disponible: Optional[Decimal] = Decimal('0.00')
+    model_config = ConfigDict(from_attributes=True)
+
+class TransaccionBase(BaseModel):
+    tarjeta_id: uuid.UUID
+    tipo: str
+    monto: Decimal
+    descripcion: Optional[str] = None
+    subtipo: Optional[str] = None
+    afecta_limite: bool = True
+    fecha: datetime
+
+class TransaccionCreate(TransaccionBase):
+    pass
+
+class TransaccionResponse(TransaccionBase):
+    id: uuid.UUID
+    fecha_creacion: datetime
+    fecha_actualizacion: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)

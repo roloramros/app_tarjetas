@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">LimitTx</string>
+    <string name="app_name">LimiTx</string>
     <string name="card_icon_description">Icono de Tarjeta</string>
     <string name="card_name_placeholder">Nombre de la Tarjeta</string>
     <string name="card_number_placeholder">**** **** **** 1234</string>
@@ -14,6 +14,8 @@
     <string name="menu_sort_deposit">Depósito Disponible</string>
 
     <string name="action_add_card">Añadir Tarjeta</string>
+    <string name="action_vew_history">Ver Historial de Transacciones</string>
+    <string name="action_windows_config">Configurar Pestañas</string>
     <string name="action_logout">Cerrar Sesión</string>
     <string name="navigation_drawer_open">Abrir menú de navegación</string>
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>

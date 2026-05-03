@@ -1,0 +1,66 @@
+Crear la BD:
+CREATE DATABASE limittx_bd;
+CREATE USER limittx_user WITH PASSWORD 'EnzoDaniel*2023';
+GRANT ALL PRIVILEGES ON DATABASE limittx_bd TO limittx_user;
+\c limittx_bd
+GRANT ALL ON SCHEMA public TO limittx_user;
+
+Par conectarse a la BD:
+psql -U limittx_user -d limittx_bd -h localhost -W
+
+
+Table "public.usuarios"
+       Column       |            Type             | Collation | Nullable |                  Default
+--------------------+-----------------------------+-----------+----------+-------------------------------------------
+ id                 | uuid                        |           | not null | gen_random_uuid()
+ nombre             | text                        |           |          |
+ password_hash      | text                        |           | not null |
+ suscripcion_activa | boolean                     |           |          | true
+ suscripcion_hasta  | timestamp without time zone |           |          | (CURRENT_TIMESTAMP + '30 days'::interval)
+ last_login         | timestamp without time zone |           |          | CURRENT_TIMESTAMP
+ fecha_creacion     | timestamp without time zone |           |          | CURRENT_TIMESTAMP
+Indexes:
+    "usuarios_pkey" PRIMARY KEY, btree (id)
+
+
+
+
+                          Table "public.tarjetas"
+     Column     |     Type      | Collation | Nullable |      Default
+----------------+---------------+-----------+----------+-------------------
+ id             | uuid          |           | not null | gen_random_uuid()
+ usuario_id     | uuid          |           | not null |
+ nombre         | text          |           | not null |
+ numero         | text          |           | not null |
+ banco          | text          |           |          |
+ moneda         | text          |           | not null |
+ limite_mensual | numeric(12,2) |           | not null |
+ activa         | boolean       |           |          | true
+Indexes:
+    "tarjetas_pkey" PRIMARY KEY, btree (id)
+Foreign-key constraints:
+    "tarjetas_usuario_id_fkey" FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+
+
+
+
+Table "public.transacciones"
+       Column        |            Type             | Collation | Nullable |      Default
+---------------------+-----------------------------+-----------+----------+-------------------
+ id                  | uuid                        |           | not null | gen_random_uuid()
+ tarjeta_id          | uuid                        |           | not null |
+ tipo                | text                        |           | not null |
+ subtipo             | text                        |           |          |
+ monto               | numeric(12,2)               |           | not null |
+ descripcion         | text                        |           |          |
+ afecta_limite       | boolean                     |           |          | true
+ fecha_creacion      | timestamp without time zone |           |          | CURRENT_TIMESTAMP
+ fecha               | timestamp without time zone |           | not null |
+ fecha_actualizacion | timestamp without time zone |           |          |
+Indexes:
+    "transacciones_pkey" PRIMARY KEY, btree (id)
+Check constraints:
+    "transacciones_monto_check" CHECK (monto > 0::numeric)
+    "transacciones_tipo_check" CHECK (tipo = ANY (ARRAY['entrada'::text, 'salida'::text]))
+Foreign-key constraints:
+    "transacciones_tarjeta_id_fkey" FOREIGN KEY (tarjeta_id) REFERENCES tarjetas(id) ON DELETE CASCADE

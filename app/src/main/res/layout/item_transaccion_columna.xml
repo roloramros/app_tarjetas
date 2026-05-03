@@ -3,6 +3,20 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="8dp">
-    <TextView android:id="@+id/tvMonto" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textStyle="bold"/>
-    <TextView android:id="@+id/tvFecha" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:textSize="12sp"/>
+    <TextView 
+        android:id="@+id/tvMonto" 
+        android:layout_width="0dp" 
+        android:layout_weight="1" 
+        android:layout_height="wrap_content" 
+        android:textStyle="bold"
+        android:textSize="18sp"
+        android:textColor="@color/purple_500"/>
+    <TextView 
+        android:id="@+id/tvFecha" 
+        android:layout_width="0dp" 
+        android:layout_weight="1" 
+        android:layout_height="wrap_content" 
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="@color/purple_500"/>
 </LinearLayout>

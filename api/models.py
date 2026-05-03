@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Text, Boolean, DateTime, func, Numeric, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
 import uuid
 
-Base = declarative_base()
+from database import Base
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -36,3 +35,20 @@ class Tarjeta(Base):
     activa = Column(Boolean, default=True)
 
     usuario = relationship("Usuario", back_populates="tarjetas")
+    transacciones = relationship("Transaccion", back_populates="tarjeta", cascade="all, delete-orphan")
+
+class Transaccion(Base):
+    __tablename__ = "transacciones"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tarjeta_id = Column(UUID(as_uuid=True), ForeignKey("tarjetas.id", ondelete="CASCADE"), nullable=False)
+    tipo = Column(Text, nullable=False) # 'entrada' o 'salida'
+    subtipo = Column(Text, nullable=True)
+    monto = Column(Numeric(12, 2), nullable=False)
+    descripcion = Column(Text, nullable=True)
+    afecta_limite = Column(Boolean, default=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+    fecha = Column(DateTime, nullable=False)
+    fecha_actualizacion = Column(DateTime, onupdate=func.now())
+
+    tarjeta = relationship("Tarjeta", back_populates="transacciones")

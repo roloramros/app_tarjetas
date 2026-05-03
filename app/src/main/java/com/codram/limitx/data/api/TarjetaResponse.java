@@ -11,6 +11,9 @@ public class TarjetaResponse {
     private String moneda;
     private double limite_mensual;
     private boolean activa;
+    private double saldo_tarjeta;
+    private double extraccion_disponible;
+    private double deposito_disponible;
 
     // Getters
     public UUID getId() { return id; }
@@ -21,4 +24,7 @@ public class TarjetaResponse {
     public String getMoneda() { return moneda; }
     public double getLimiteMensual() { return limite_mensual; }
     public boolean isActiva() { return activa; }
+    public double getSaldo_tarjeta() { return saldo_tarjeta; }
+    public double getExtraccion_disponible() { return extraccion_disponible; }
+    public double getDeposito_disponible() { return deposito_disponible; }
 }
