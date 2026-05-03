@@ -66,17 +66,23 @@ public class MainActivity extends AppCompatActivity {
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
+        View footerLogout = findViewById(R.id.nav_footer_logout);
+        if (footerLogout != null) {
+            footerLogout.setOnClickListener(v -> {
+                sessionManager.clearSession();
+                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                drawerLayout.closeDrawer(GravityCompat.START);
+            });
+        }
+
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_add_card) {
                 AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
                 bottomSheet.setOnTarjetaAddedListener(this::loadTarjetas);
                 bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
-            } else if (id == R.id.nav_logout) {
-                sessionManager.clearSession();
-                Intent intent = new Intent(MainActivity.this, LoginActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
             }
             drawerLayout.closeDrawer(GravityCompat.START);
             return true;
@@ -86,7 +92,9 @@ public class MainActivity extends AppCompatActivity {
         viewPager.setAdapter(pagerAdapter);
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            tab.setText(position == 0 ? "CUP" : "USD");
+            if (position == 0) tab.setText("CUP");
+            else if (position == 1) tab.setText("USD");
+            else tab.setText("MLC");
         }).attach();
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
@@ -160,7 +168,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void actualizarSaldoTotal() {
         int position = viewPager.getCurrentItem();
-        String monedaFiltro = (position == 0) ? "CUP" : "USD";
+        String monedaFiltro;
+        if (position == 0) monedaFiltro = "CUP";
+        else if (position == 1) monedaFiltro = "USD";
+        else monedaFiltro = "MLC";
 
         double total = 0;
         if (listaTarjetasOriginal != null) {
@@ -235,22 +246,28 @@ public class MainActivity extends AppCompatActivity {
     private void distribuirTarjetas() {
         List<TarjetaResponse> cup = new ArrayList<>();
         List<TarjetaResponse> usd = new ArrayList<>();
+        List<TarjetaResponse> mlc = new ArrayList<>();
         if (listaTarjetasOriginal != null) {
             for (TarjetaResponse t : listaTarjetasOriginal) {
                 if (t == null) continue;
                 if ("CUP".equals(t.getMoneda())) cup.add(t);
-                else usd.add(t);
+                else if ("USD".equals(t.getMoneda())) usd.add(t);
+                else if ("MLC".equals(t.getMoneda())) mlc.add(t);
             }
         }
         
         // Configurar listeners si aún no se han configurado
         pagerAdapter.getCupFragment().setOnRefreshListener(this::loadTarjetas);
         pagerAdapter.getUsdFragment().setOnRefreshListener(this::loadTarjetas);
+        pagerAdapter.getMlcFragment().setOnRefreshListener(this::loadTarjetas);
+        
         pagerAdapter.getCupFragment().setTransactionListener(this::loadTarjetas);
         pagerAdapter.getUsdFragment().setTransactionListener(this::loadTarjetas);
+        pagerAdapter.getMlcFragment().setTransactionListener(this::loadTarjetas);
 
         pagerAdapter.getCupFragment().updateData(cup);
         pagerAdapter.getUsdFragment().updateData(usd);
+        pagerAdapter.getMlcFragment().updateData(mlc);
     }
 
     private void handleWindowInsets() {
@@ -264,5 +281,6 @@ public class MainActivity extends AppCompatActivity {
     private void showLoading(boolean isLoading) {
         pagerAdapter.getCupFragment().showLoading(isLoading);
         pagerAdapter.getUsdFragment().showLoading(isLoading);
+        pagerAdapter.getMlcFragment().showLoading(isLoading);
     }
 }

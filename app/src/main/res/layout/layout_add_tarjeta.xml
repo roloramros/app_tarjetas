@@ -36,7 +36,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/label_banco"
+        android:text="@string/label_tipo_tarjeta"
         android:layout_marginBottom="4dp" />
     <Spinner
         android:id="@+id/spinnerBanco"

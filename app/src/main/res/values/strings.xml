@@ -23,6 +23,7 @@
 
     <!-- Add Tarjeta Strings -->
     <string name="switch_tarjeta_tcp">Es tarjeta TCP</string>
+    <string name="label_tipo_tarjeta">Tipo de Tarjeta</string>
     <string name="label_banco">Banco</string>
     <string name="label_moneda">Moneda</string>
     <string name="hint_nombre_tarjeta">Nombre de la tarjeta</string>

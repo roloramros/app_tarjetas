@@ -35,7 +35,8 @@ public class AddTarjetaBottomSheet extends DialogFragment {
     private Spinner spinnerBanco, spinnerMoneda;
     private SwitchMaterial swTcp;
     private String[] bancos = {"BPA", "BANDEC", "METRO", "CLASICA", "TROPICAL"};
-    private String[] monedas = {"CUP", "USD"};
+    private String[] monedasBpa = {"CUP", "MLC"};
+    private String[] monedasUsd = {"USD"};
 
     public void setOnTarjetaAddedListener(OnTarjetaAddedListener listener) {
         this.listener = listener;
@@ -75,19 +76,28 @@ public class AddTarjetaBottomSheet extends DialogFragment {
         bancoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerBanco.setAdapter(bancoAdapter);
 
-        ArrayAdapter<String> monedaAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, monedas);
-        monedaAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerMoneda.setAdapter(monedaAdapter);
+        // Initial adapter for moneda
+        ArrayAdapter<String> initialMonedaAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, monedasBpa);
+        initialMonedaAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerMoneda.setAdapter(initialMonedaAdapter);
 
         spinnerBanco.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selectedBanco = bancos[position];
                 if (selectedBanco.equals("CLASICA") || selectedBanco.equals("TROPICAL")) {
-                    spinnerMoneda.setSelection(1); // USD
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, monedasUsd);
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerMoneda.setAdapter(adapter);
                     spinnerMoneda.setEnabled(false);
+                    swTcp.setVisibility(View.GONE);
+                    swTcp.setChecked(false);
                 } else {
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_item, monedasBpa);
+                    adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                    spinnerMoneda.setAdapter(adapter);
                     spinnerMoneda.setEnabled(true);
+                    swTcp.setVisibility(View.VISIBLE);
                 }
             }
             @Override
@@ -107,8 +117,21 @@ public class AddTarjetaBottomSheet extends DialogFragment {
         }
 
         double limite = 0.0;
-        if (!swTcp.isChecked()) {
-            limite = moneda.equals("CUP") ? 120000.0 : 5000.0;
+        if (banco.equals("CLASICA")) {
+            limite = 0.0;
+        } else if (banco.equals("TROPICAL")) {
+            limite = 5000.0;
+        } else {
+            // BPA, BANDEC, METRO
+            if (swTcp.isChecked()) {
+                limite = 0.0;
+            } else {
+                if (moneda.equals("CUP")) {
+                    limite = 120000.0;
+                } else if (moneda.equals("MLC")) {
+                    limite = 5000.0;
+                }
+            }
         }
         
         TarjetaRequest request = new TarjetaRequest(nombre, numero, banco, moneda, limite, true);
