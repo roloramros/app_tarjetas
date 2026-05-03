@@ -7,6 +7,7 @@ public class SessionManager {
     private static final String PREF_NAME = "LimiTxSession";
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_KEEP_LOGGED_IN = "keep_logged_in";
+    private static final String KEY_SORT_ORDER = "sort_order";
 
     private SharedPreferences prefs;
 
@@ -32,5 +33,13 @@ public class SessionManager {
 
     public void clearSession() {
         prefs.edit().clear().apply();
+    }
+
+    public void saveSortOrder(String order) {
+        prefs.edit().putString(KEY_SORT_ORDER, order).apply();
+    }
+
+    public String getSortOrder() {
+        return prefs.getString(KEY_SORT_ORDER, "saldo"); // "saldo" is default
     }
 }
