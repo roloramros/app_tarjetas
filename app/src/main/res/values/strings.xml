@@ -12,4 +12,9 @@
     <string name="menu_sort_balance">Saldo en Tarjeta</string>
     <string name="menu_sort_extraction">Extracción Disponible</string>
     <string name="menu_sort_deposit">Depósito Disponible</string>
+
+    <string name="action_add_card">Añadir Tarjeta</string>
+    <string name="action_logout">Cerrar Sesión</string>
+    <string name="navigation_drawer_open">Abrir menú de navegación</string>
+    <string name="navigation_drawer_close">Cerrar menú de navegación</string>
 </resources>
