@@ -8,11 +8,21 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 public class TarjetasPagerAdapter extends FragmentStateAdapter {
     private final TarjetasFragment cupFragment;
     private final TarjetasFragment usdFragment;
+    private boolean isSubscriptionActive = true;
 
     public TarjetasPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
         cupFragment = TarjetasFragment.newInstance();
         usdFragment = TarjetasFragment.newInstance();
+    }
+
+    public void setSubscriptionActive(boolean isActive) {
+        if (this.isSubscriptionActive != isActive) {
+            this.isSubscriptionActive = isActive;
+            cupFragment.setSubscriptionActive(isActive);
+            usdFragment.setSubscriptionActive(isActive);
+            notifyDataSetChanged();
+        }
     }
 
     @NonNull
@@ -23,7 +33,7 @@ public class TarjetasPagerAdapter extends FragmentStateAdapter {
 
     @Override
     public int getItemCount() {
-        return 2;
+        return isSubscriptionActive ? 2 : 1; // Only 1 (CUP) if inactive
     }
 
     public TarjetasFragment getCupFragment() { return cupFragment; }

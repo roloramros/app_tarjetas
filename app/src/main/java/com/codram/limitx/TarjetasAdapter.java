@@ -39,10 +39,21 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
 
     private List<TarjetaResponse> tarjetas;
     private OnTransactionAddedListener transactionListener;
+    private boolean isSubscriptionActive = true;
 
     public TarjetasAdapter(List<TarjetaResponse> tarjetas, OnTransactionAddedListener transactionListener) {
+        this(tarjetas, transactionListener, true);
+    }
+
+    public TarjetasAdapter(List<TarjetaResponse> tarjetas, OnTransactionAddedListener transactionListener, boolean isSubscriptionActive) {
         this.tarjetas = tarjetas;
         this.transactionListener = transactionListener;
+        this.isSubscriptionActive = isSubscriptionActive;
+    }
+
+    public void setSubscriptionActive(boolean isActive) {
+        this.isSubscriptionActive = isActive;
+        notifyDataSetChanged();
     }
 
     @NonNull

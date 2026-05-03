@@ -26,9 +26,17 @@ public class TarjetasFragment extends Fragment {
     private List<TarjetaResponse> tarjetas = new ArrayList<>();
     private Runnable onRefreshListener;
     private TarjetasAdapter.OnTransactionAddedListener transactionListener;
+    private boolean isSubscriptionActive = true;
 
     public static TarjetasFragment newInstance() {
         return new TarjetasFragment();
+    }
+
+    public void setSubscriptionActive(boolean isActive) {
+        this.isSubscriptionActive = isActive;
+        if (adapter != null) {
+            adapter.setSubscriptionActive(isActive);
+        }
     }
 
     public void setOnRefreshListener(Runnable listener) {
@@ -38,6 +46,8 @@ public class TarjetasFragment extends Fragment {
     public void setTransactionListener(TarjetasAdapter.OnTransactionAddedListener listener) {
         this.transactionListener = listener;
     }
+
+    private List<TarjetaResponse> pendingData;
 
     @Nullable
     @Override
@@ -53,13 +63,25 @@ public class TarjetasFragment extends Fragment {
             if (onRefreshListener != null) onRefreshListener.run();
         });
 
+        // Si hay datos esperando, los aplicamos ahora que la vista existe
+        if (pendingData != null) {
+            updateData(pendingData);
+            pendingData = null;
+        }
+
         return view;
     }
 
     public void updateData(List<TarjetaResponse> nuevasTarjetas) {
+        if (rvTarjetas == null) {
+            // La vista aún no se ha creado, guardamos los datos para después
+            this.pendingData = nuevasTarjetas;
+            return;
+        }
+
         this.tarjetas = nuevasTarjetas;
         if (adapter == null) {
-            adapter = new TarjetasAdapter(tarjetas, transactionListener);
+            adapter = new TarjetasAdapter(tarjetas, transactionListener, isSubscriptionActive);
             rvTarjetas.setAdapter(adapter);
         } else {
             adapter.updateData(tarjetas);
@@ -76,7 +98,11 @@ public class TarjetasFragment extends Fragment {
     }
 
     public void showLoading(boolean isLoading) {
-        if (swipeRefresh != null) swipeRefresh.setRefreshing(isLoading);
-        if (progressBar != null) progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        if (swipeRefresh != null) {
+            swipeRefresh.setRefreshing(isLoading);
+        }
+        if (progressBar != null) {
+            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        }
     }
 }
