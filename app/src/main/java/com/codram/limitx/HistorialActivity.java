@@ -17,6 +17,7 @@ import com.codram.limitx.data.api.ApiService;
 import com.codram.limitx.data.api.TransaccionResponse;
 import com.codram.limitx.data.api.TransaccionUpdate;
 import com.codram.limitx.data.SessionManager;
+import com.codram.limitx.utils.TransactionDialogHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -39,6 +40,8 @@ public class HistorialActivity extends AppCompatActivity {
     private RecyclerView rvEntradas, rvSalidas;
     private List<TransaccionResponse> entradas = new ArrayList<>();
     private List<TransaccionResponse> salidas = new ArrayList<>();
+    private UUID tarjetaId;
+    private String tarjetaNombre;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,14 +84,16 @@ public class HistorialActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.fabAdd).setOnClickListener(v ->
-                Toast.makeText(this, "Añadir depósito", Toast.LENGTH_SHORT).show());
+                TransactionDialogHelper.showTransactionDialog(this, "Depósito", tarjetaId, tarjetaNombre, () -> cargarTransacciones(tarjetaId)));
 
         findViewById(R.id.fabRemove).setOnClickListener(v ->
-                Toast.makeText(this, "Añadir extracción", Toast.LENGTH_SHORT).show());
+                TransactionDialogHelper.showTransactionDialog(this, "Extracción", tarjetaId, tarjetaNombre, () -> cargarTransacciones(tarjetaId)));
 
-        String tarjetaId = getIntent().getStringExtra("TARJETA_ID");
-        if (tarjetaId != null) {
-            cargarTransacciones(UUID.fromString(tarjetaId));
+        String idStr = getIntent().getStringExtra("TARJETA_ID");
+        if (idStr != null) {
+            tarjetaId = UUID.fromString(idStr);
+            tarjetaNombre = getIntent().getStringExtra("TARJETA_NOMBRE");
+            cargarTransacciones(tarjetaId);
         }
     }
 
