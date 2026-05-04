@@ -22,6 +22,13 @@ class UsuarioResponse(UsuarioBase):
     last_login: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
     cantidad_tarjetas: Optional[int] = 0
+    cantidad_transacciones: Optional[int] = 0
+    model_config = ConfigDict(from_attributes=True)
+
+class AdminStatsResponse(BaseModel):
+    total_usuarios: int
+    total_tarjetas: int
+    total_transacciones: int
     model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
