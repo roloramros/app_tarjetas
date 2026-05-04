@@ -18,6 +18,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import com.codram.limitx.data.SessionManager;
+import com.codram.limitx.data.api.AdminStatsResponse;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.UsuarioResponse;
 import com.google.android.material.navigation.NavigationView;
@@ -34,7 +35,8 @@ public class AdminUsuariosActivity extends AppCompatActivity {
 
     private Spinner spinnerUsuarios;
     private LinearLayout layoutUserInfo;
-    private TextView tvSuscripcionActiva, tvSuscripcionHasta, tvLastLogin, tvFechaCreacion, tvCantidadTarjetas;
+    private TextView tvSuscripcionActiva, tvSuscripcionHasta, tvLastLogin, tvFechaCreacion, tvCantidadTarjetas, tvCantidadTransacciones;
+    private TextView tvTotalUsuarios, tvTotalTarjetas, tvTotalTransacciones;
     private Button btnEliminarUsuario;
     private ProgressBar progressBar;
     private SessionManager sessionManager;
@@ -97,9 +99,14 @@ public class AdminUsuariosActivity extends AppCompatActivity {
         tvLastLogin = findViewById(R.id.tvLastLogin);
         tvFechaCreacion = findViewById(R.id.tvFechaCreacion);
         tvCantidadTarjetas = findViewById(R.id.tvCantidadTarjetas);
+        tvCantidadTransacciones = findViewById(R.id.tvCantidadTransacciones);
+        tvTotalUsuarios = findViewById(R.id.tvTotalUsuarios);
+        tvTotalTarjetas = findViewById(R.id.tvTotalTarjetas);
+        tvTotalTransacciones = findViewById(R.id.tvTotalTransacciones);
         btnEliminarUsuario = findViewById(R.id.btnEliminarUsuario);
         progressBar = findViewById(R.id.progressBar);
 
+        cargarStatsGenerales();
         cargarUsuarios();
 
         spinnerUsuarios.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -123,6 +130,26 @@ public class AdminUsuariosActivity extends AppCompatActivity {
         btnEliminarUsuario.setOnClickListener(v -> {
             if (usuarioSeleccionado != null) {
                 confirmarEliminarUsuario();
+            }
+        });
+    }
+
+    private void cargarStatsGenerales() {
+        String token = "Bearer " + sessionManager.getToken();
+        ApiClient.getService().getAdminStats(token).enqueue(new Callback<AdminStatsResponse>() {
+            @Override
+            public void onResponse(Call<AdminStatsResponse> call, Response<AdminStatsResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    AdminStatsResponse stats = response.body();
+                    tvTotalUsuarios.setText("Usuarios Totales: " + stats.getTotal_usuarios());
+                    tvTotalTarjetas.setText("Tarjetas Totales: " + stats.getTotal_tarjetas());
+                    tvTotalTransacciones.setText("Transacciones Totales: " + stats.getTotal_transacciones());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AdminStatsResponse> call, Throwable t) {
+                // Silently fail or show minor error
             }
         });
     }
@@ -176,6 +203,7 @@ public class AdminUsuariosActivity extends AppCompatActivity {
         tvFechaCreacion.setText("Fecha Creación: " + (fechaCreacion != null ? fechaCreacion : "N/A"));
 
         tvCantidadTarjetas.setText("Tarjetas Registradas: " + u.getCantidadTarjetas());
+        tvCantidadTransacciones.setText("Transacciones Realizadas: " + u.getCantidadTransacciones());
     }
 
     private String formatBackendDate(String rawDate) {
@@ -228,6 +256,7 @@ public class AdminUsuariosActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful()) {
                     Toast.makeText(AdminUsuariosActivity.this, "Usuario eliminado correctamente", Toast.LENGTH_SHORT).show();
+                    cargarStatsGenerales();
                     cargarUsuarios(); // Recargar lista
                 } else {
                     Toast.makeText(AdminUsuariosActivity.this, "Error al eliminar usuario", Toast.LENGTH_SHORT).show();
