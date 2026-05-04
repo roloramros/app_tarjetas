@@ -13,7 +13,8 @@ from schemas import (
     UsuarioCreate, UsuarioUpdate, UsuarioResponse,
     TokenResponse, LoginRequest,
     TarjetaCreate, TarjetaUpdate, TarjetaResponse,
-    TransaccionCreate, TransaccionResponse, AppVersionResponse
+    TransaccionCreate, TransaccionResponse, AppVersionResponse,
+    AdminStatsResponse
 )
 from utils import verify_password, hash_password, create_access_token, decode_token
 
@@ -104,8 +105,22 @@ async def listar_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    result = await db.execute(select(Usuario).order_by(Usuario.fecha_creacion.desc()))
-    return result.scalars().all()
+    # Join to get counts
+    query = select(
+        Usuario,
+        func.count(Tarjeta.id.distinct()).label("cantidad_tarjetas"),
+        func.count(Transaccion.id.distinct()).label("cantidad_transacciones")
+    ).outerjoin(Tarjeta).outerjoin(Tarjeta.transacciones).group_by(Usuario.id).order_by(Usuario.fecha_creacion.desc())
+    
+    result = await db.execute(query)
+    usuarios_con_conteo = []
+    for usuario, cant_tarjetas, cant_transacciones in result:
+        u_dict = UsuarioResponse.model_validate(usuario).model_dump()
+        u_dict["cantidad_tarjetas"] = cant_tarjetas
+        u_dict["cantidad_transacciones"] = cant_transacciones
+        usuarios_con_conteo.append(u_dict)
+        
+    return usuarios_con_conteo
 
 @app.get("/usuarios/{user_id}", response_model=UsuarioResponse)
 async def obtener_usuario(
@@ -158,6 +173,23 @@ async def eliminar_usuario(
     await db.delete(user)
     await db.commit()
     return {"msg": f"Usuario {user.nombre} eliminado"}
+
+@app.get("/admin/stats", response_model=AdminStatsResponse)
+async def obtener_estadisticas_globales(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Check if user is Rolo (Admin)
+    if current_user.nombre.lower() != "rolo":
+         raise HTTPException(status_code=403, detail="No tienes permisos para ver esta información")
+
+    stmt = select(
+        select(func.count()).select_from(Usuario).scalar_subquery().label("total_usuarios"),
+        select(func.count()).select_from(Tarjeta).scalar_subquery().label("total_tarjetas"),
+        select(func.count()).select_from(Transaccion).scalar_subquery().label("total_transacciones")
+    )
+    result = await db.execute(stmt)
+    return result.mappings().first()
 
 @app.get("/usuarios/me", response_model=UsuarioResponse)
 async def obtener_usuario_actual(
