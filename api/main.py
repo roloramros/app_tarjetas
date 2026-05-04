@@ -8,12 +8,12 @@ from decimal import Decimal
 import uuid
 
 from database import engine, get_db, Base
-from models import Usuario, Tarjeta, Transaccion
+from models import Usuario, Tarjeta, Transaccion, AppVersion
 from schemas import (
     UsuarioCreate, UsuarioUpdate, UsuarioResponse,
     TokenResponse, LoginRequest,
     TarjetaCreate, TarjetaUpdate, TarjetaResponse,
-    TransaccionCreate, TransaccionResponse
+    TransaccionCreate, TransaccionResponse, AppVersionResponse
 )
 from utils import verify_password, hash_password, create_access_token, decode_token
 
@@ -50,6 +50,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
 @app.get("/")
 def read_root():
     return {"msg": "API Nueva App corriendo. Ve a /docs para probar endpoints."}
+
+@app.get("/app-version", response_model=AppVersionResponse)
+async def obtener_version_app(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(AppVersion))
+    version_record = result.scalars().first()
+    if not version_record:
+        return {"version": "1.0"} # Default if table is empty
+    return version_record
 
 @app.post("/login", response_model=TokenResponse)
 async def login(

@@ -46,4 +46,7 @@ public interface ApiService {
 
     @GET("/usuarios/me")
     Call<UsuarioResponse> getMe(@Header("Authorization") String token);
+
+    @GET("/app-version")
+    Call<AppVersionResponse> getAppVersion();
 }
