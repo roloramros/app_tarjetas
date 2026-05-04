@@ -80,6 +80,12 @@ public class HistorialActivity extends AppCompatActivity {
             }
         });
 
+        findViewById(R.id.fabAdd).setOnClickListener(v ->
+                Toast.makeText(this, "Añadir depósito", Toast.LENGTH_SHORT).show());
+
+        findViewById(R.id.fabRemove).setOnClickListener(v ->
+                Toast.makeText(this, "Añadir extracción", Toast.LENGTH_SHORT).show());
+
         String tarjetaId = getIntent().getStringExtra("TARJETA_ID");
         if (tarjetaId != null) {
             cargarTransacciones(UUID.fromString(tarjetaId));
