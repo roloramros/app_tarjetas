@@ -16,13 +16,19 @@ import java.text.NumberFormat;
 import java.util.Locale;
 
 public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdapter.ViewHolder> {
+    public interface OnItemClickListener {
+        void onItemClick(TransaccionResponse transaccion);
+    }
+
     private List<TransaccionResponse> transacciones;
+    private OnItemClickListener listener;
     private final DateTimeFormatter inputFormatter = DateTimeFormatter.ISO_DATE_TIME;
     private final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd/MM");
     private final java.text.DecimalFormat numberFormat;
 
-    public TransaccionesAdapter(List<TransaccionResponse> transacciones) {
+    public TransaccionesAdapter(List<TransaccionResponse> transacciones, OnItemClickListener listener) {
         this.transacciones = transacciones;
+        this.listener = listener;
         this.numberFormat = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(Locale.US);
         java.text.DecimalFormatSymbols symbols = numberFormat.getDecimalFormatSymbols();
         symbols.setGroupingSeparator(' ');
@@ -63,18 +69,12 @@ public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdap
         holder.tvMonto.setTextColor(colorTexto);
         holder.tvFecha.setTextColor(colorTexto);
 
-        // Lógica de clic para mostrar descripción
-        if (t.getDescripcion() != null && !t.getDescripcion().isEmpty()) {
-            holder.itemView.setOnClickListener(v -> {
-                new androidx.appcompat.app.AlertDialog.Builder(v.getContext())
-                    .setTitle("Descripción")
-                    .setMessage(t.getDescripcion())
-                    .setPositiveButton("OK", null)
-                    .show();
-            });
-        } else {
-            holder.itemView.setOnClickListener(null);
-        }
+        // Lógica de clic para editar la transacción
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(t);
+            }
+        });
     }
 
     @Override
