@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.utils.TransactionDialogHelper;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +26,7 @@ public class TarjetasFragment extends Fragment {
     private TarjetasAdapter adapter;
     private List<TarjetaResponse> tarjetas = new ArrayList<>();
     private Runnable onRefreshListener;
-    private TarjetasAdapter.OnTransactionAddedListener transactionListener;
+    private TransactionDialogHelper.OnTransactionAddedListener transactionListener;
     private boolean isSubscriptionActive = true;
 
     public static TarjetasFragment newInstance() {
@@ -43,7 +44,7 @@ public class TarjetasFragment extends Fragment {
         this.onRefreshListener = listener;
     }
 
-    public void setTransactionListener(TarjetasAdapter.OnTransactionAddedListener listener) {
+    public void setTransactionListener(TransactionDialogHelper.OnTransactionAddedListener listener) {
         this.transactionListener = listener;
     }
 
