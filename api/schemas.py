@@ -78,6 +78,11 @@ class TransaccionBase(BaseModel):
 class TransaccionCreate(TransaccionBase):
     pass
 
+class TransaccionUpdate(BaseModel):
+    monto: Optional[Decimal] = None
+    descripcion: Optional[str] = None
+    fecha: Optional[datetime] = None
+
 class TransaccionResponse(TransaccionBase):
     id: uuid.UUID
     fecha_creacion: datetime

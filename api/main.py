@@ -13,7 +13,7 @@ from schemas import (
     UsuarioCreate, UsuarioUpdate, UsuarioResponse, AdminStatsResponse,
     TokenResponse, LoginRequest,
     TarjetaCreate, TarjetaUpdate, TarjetaResponse,
-    TransaccionCreate, TransaccionResponse, AppVersionResponse
+    TransaccionCreate, TransaccionUpdate, TransaccionResponse, AppVersionResponse
 )
 from utils import verify_password, hash_password, create_access_token, decode_token
 
@@ -115,9 +115,12 @@ async def listar_usuarios(
     query = select(
         Usuario,
         select(func.count(Tarjeta.id)).where(Tarjeta.usuario_id == Usuario.id).scalar_subquery().label("cantidad_tarjetas"),
-        select(func.count(Transaccion.id)).where(Transaccion.tarjeta_id.in_(
-            select(Tarjeta.id).where(Tarjeta.usuario_id == Usuario.id)
-        )).scalar_subquery().label("cantidad_transacciones")
+        select(func.count(Transaccion.id))
+        .select_from(Transaccion)
+        .join(Tarjeta, Transaccion.tarjeta_id == Tarjeta.id)
+        .where(Tarjeta.usuario_id == Usuario.id)
+        .scalar_subquery()
+        .label("cantidad_transacciones")
     ).order_by(Usuario.fecha_creacion.desc())
     
     result = await db.execute(query)
@@ -135,8 +138,8 @@ async def obtener_stats_admin(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    # Simple check for admin role (Rolo)
-    if current_user.nombre != "Rolo":
+    # Simple check for admin role (Rolo) - Case insensitive to match frontend
+    if not current_user.nombre or current_user.nombre.lower() != "rolo":
         raise HTTPException(status_code=403, detail="Acceso denegado")
         
     total_usuarios = await db.scalar(select(func.count(Usuario.id)))
@@ -389,3 +392,51 @@ async def listar_transacciones_mes(
         .order_by(Transaccion.fecha.asc())
     )
     return result.scalars().all()
+
+@app.put("/transacciones/{transaccion_id}", response_model=TransaccionResponse)
+async def actualizar_transaccion(
+    transaccion_id: uuid.UUID,
+    data: TransaccionUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Fetch transaction and verify ownership through card
+    query = select(Transaccion).join(Tarjeta).where(
+        Transaccion.id == transaccion_id,
+        Tarjeta.usuario_id == current_user.id
+    )
+    result = await db.execute(query)
+    transaccion = result.scalars().first()
+    if not transaccion:
+        raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    
+    if data.monto is not None:
+        transaccion.monto = data.monto
+    if data.descripcion is not None:
+        transaccion.descripcion = data.descripcion
+    if data.fecha is not None:
+        transaccion.fecha = data.fecha
+        
+    await db.commit()
+    await db.refresh(transaccion)
+    return transaccion
+
+@app.delete("/transacciones/{transaccion_id}", status_code=200)
+async def eliminar_transaccion(
+    transaccion_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Fetch transaction and verify ownership through card
+    query = select(Transaccion).join(Tarjeta).where(
+        Transaccion.id == transaccion_id,
+        Tarjeta.usuario_id == current_user.id
+    )
+    result = await db.execute(query)
+    transaccion = result.scalars().first()
+    if not transaccion:
+        raise HTTPException(status_code=404, detail="Transacción no encontrada")
+    
+    await db.delete(transaccion)
+    await db.commit()
+    return {"msg": "Transacción eliminada"}
