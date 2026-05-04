@@ -18,6 +18,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
+import com.codram.limitx.data.api.AppVersionResponse;
 import com.codram.limitx.data.api.TarjetaResponse;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        checkVersion();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -282,5 +285,38 @@ public class MainActivity extends AppCompatActivity {
         pagerAdapter.getCupFragment().showLoading(isLoading);
         pagerAdapter.getUsdFragment().showLoading(isLoading);
         pagerAdapter.getMlcFragment().showLoading(isLoading);
+    }
+
+    private void checkVersion() {
+        String currentVersion = "1.0"; // Coincide con strings.xml
+        ApiClient.getService().getAppVersion().enqueue(new Callback<AppVersionResponse>() {
+            @Override
+            public void onResponse(Call<AppVersionResponse> call, Response<AppVersionResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    String latestVersion = response.body().getVersion();
+                    if (!currentVersion.equals(latestVersion)) {
+                        showUpdateDialog();
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<AppVersionResponse> call, Throwable t) {
+                // Silently ignore
+            }
+        });
+    }
+
+    private void showUpdateDialog() {
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Actualización disponible")
+                .setMessage("Hay una nueva actualización disponible de LimiTx. Por favor, descarga la última versión.")
+                .setPositiveButton("Actualizar", (dialog, which) -> {
+                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
+                    intent.setData(android.net.Uri.parse("https://t.me/codram_software/3"));
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cerrar", null)
+                .show();
     }
 }
