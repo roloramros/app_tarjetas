@@ -12,7 +12,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            app:title="Historial"
+            app:title="Transacciones del Mes"
             app:titleTextColor="?attr/colorOnPrimary"
             app:navigationIconTint="?attr/colorOnPrimary" />
     </com.google.android.material.appbar.AppBarLayout>
@@ -28,8 +28,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Entradas" android:gravity="center" android:padding="8dp" android:textSize="20sp" android:textStyle="bold" android:id="@+id/tvHeader"/>
-            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Salidas" android:gravity="center" android:padding="8dp" android:textSize="20sp" android:textStyle="bold"/>
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Depósitos" android:gravity="center" android:padding="8dp" android:textSize="20sp" android:textStyle="bold" android:id="@+id/tvHeader"/>
+            <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:text="Extracciones" android:gravity="center" android:padding="8dp" android:textSize="20sp" android:textStyle="bold"/>
         </LinearLayout>
 
         <LinearLayout
@@ -39,5 +39,32 @@
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvEntradas" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"/>
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvSalidas" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"/>
         </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabAdd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:src="@drawable/ic_add"
+            app:backgroundTint="@color/green_500"
+            app:tint="@android:color/white"
+            android:contentDescription="Añadir depósito" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabRemove"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_remove"
+            app:backgroundTint="@color/red_500"
+            app:tint="@android:color/white"
+            android:contentDescription="Añadir extracción" />
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
