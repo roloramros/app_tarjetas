@@ -21,8 +21,11 @@ import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.UsuarioResponse;
 import com.google.android.material.navigation.NavigationView;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -162,10 +165,33 @@ public class AdminUsuariosActivity extends AppCompatActivity {
     private void mostrarInfoUsuario(UsuarioResponse u) {
         layoutUserInfo.setVisibility(View.VISIBLE);
         tvSuscripcionActiva.setText("Suscripción Activa: " + (u.isSuscripcionActiva() ? "Sí" : "No"));
-        tvSuscripcionHasta.setText("Suscripción Hasta: " + (u.getSuscripcionHasta() != null ? u.getSuscripcionHasta() : "N/A"));
-        tvLastLogin.setText("Último Login: " + (u.getLastLogin() != null ? u.getLastLogin() : "Nunca"));
-        tvFechaCreacion.setText("Fecha Creación: " + (u.getFechaCreacion() != null ? u.getFechaCreacion() : "N/A"));
+
+        String suscripcionHasta = formatBackendDate(u.getSuscripcionHasta());
+        tvSuscripcionHasta.setText("Suscripción Hasta: " + (suscripcionHasta != null ? suscripcionHasta : "N/A"));
+
+        String lastLogin = formatBackendDate(u.getLastLogin());
+        tvLastLogin.setText("Último Login: " + (lastLogin != null ? lastLogin : "Nunca"));
+
+        String fechaCreacion = formatBackendDate(u.getFechaCreacion());
+        tvFechaCreacion.setText("Fecha Creación: " + (fechaCreacion != null ? fechaCreacion : "N/A"));
+
         tvCantidadTarjetas.setText("Tarjetas Registradas: " + u.getCantidadTarjetas());
+    }
+
+    private String formatBackendDate(String rawDate) {
+        if (rawDate == null || rawDate.isEmpty()) {
+            return null;
+        }
+        try {
+            // El backend devuelve ISO 8601: 2026-05-01T12:00:00
+            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            Date date = inputFormat.parse(rawDate);
+            SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("es", "ES"));
+            return outputFormat.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return rawDate;
+        }
     }
 
     private void confirmarEliminarUsuario() {
