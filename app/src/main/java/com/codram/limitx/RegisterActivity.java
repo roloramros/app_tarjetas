@@ -9,6 +9,9 @@ import com.codram.limitx.data.api.UsuarioCreate;
 import com.codram.limitx.data.api.UsuarioResponse;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
+
+import org.json.JSONObject;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -51,7 +54,19 @@ public class RegisterActivity extends AppCompatActivity {
                     Toast.makeText(RegisterActivity.this, "Usuario registrado exitosamente", Toast.LENGTH_SHORT).show();
                     finish();
                 } else {
-                    Toast.makeText(RegisterActivity.this, "Error: " + response.message(), Toast.LENGTH_SHORT).show();
+                    String errorMessage = "Error: " + response.message();
+                    try {
+                        if (response.errorBody() != null) {
+                            String errorBodyString = response.errorBody().string();
+                            JSONObject jsonObject = new JSONObject(errorBodyString);
+                            if (jsonObject.has("detail")) {
+                                errorMessage = jsonObject.getString("detail");
+                            }
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_SHORT).show();
                 }
             }
 
