@@ -10,7 +10,7 @@ import uuid
 from database import engine, get_db, Base
 from models import Usuario, Tarjeta, Transaccion, AppVersion
 from schemas import (
-    UsuarioCreate, UsuarioUpdate, UsuarioResponse,
+    UsuarioCreate, UsuarioUpdate, UsuarioResponse, AdminStatsResponse,
     TokenResponse, LoginRequest,
     TarjetaCreate, TarjetaUpdate, TarjetaResponse,
     TransaccionCreate, TransaccionResponse, AppVersionResponse
@@ -110,20 +110,44 @@ async def listar_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    # Join with Tarjeta to get the count
+    # Join with Tarjeta and Transaccion to get counts
+    # Subqueries are cleaner for multiple counts to avoid cartesian products
     query = select(
         Usuario,
-        func.count(Tarjeta.id).label("cantidad_tarjetas")
-    ).outerjoin(Tarjeta).group_by(Usuario.id).order_by(Usuario.fecha_creacion.desc())
+        select(func.count(Tarjeta.id)).where(Tarjeta.usuario_id == Usuario.id).scalar_subquery().label("cantidad_tarjetas"),
+        select(func.count(Transaccion.id)).where(Transaccion.tarjeta_id.in_(
+            select(Tarjeta.id).where(Tarjeta.usuario_id == Usuario.id)
+        )).scalar_subquery().label("cantidad_transacciones")
+    ).order_by(Usuario.fecha_creacion.desc())
     
     result = await db.execute(query)
     usuarios_con_conteo = []
-    for usuario, cantidad in result:
+    for usuario, cant_tarjetas, cant_trans in result:
         u_dict = UsuarioResponse.model_validate(usuario).model_dump()
-        u_dict["cantidad_tarjetas"] = cantidad
+        u_dict["cantidad_tarjetas"] = cant_tarjetas
+        u_dict["cantidad_transacciones"] = cant_trans
         usuarios_con_conteo.append(u_dict)
         
     return usuarios_con_conteo
+
+@app.get("/admin/stats", response_model=AdminStatsResponse)
+async def obtener_stats_admin(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Simple check for admin role (Rolo)
+    if current_user.nombre != "Rolo":
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+        
+    total_usuarios = await db.scalar(select(func.count(Usuario.id)))
+    total_tarjetas = await db.scalar(select(func.count(Tarjeta.id)))
+    total_transacciones = await db.scalar(select(func.count(Transaccion.id)))
+    
+    return AdminStatsResponse(
+        total_usuarios=total_usuarios or 0,
+        total_tarjetas=total_tarjetas or 0,
+        total_transacciones=total_transacciones or 0
+    )
 
 @app.get("/usuarios/{user_id}", response_model=UsuarioResponse)
 async def obtener_usuario(
