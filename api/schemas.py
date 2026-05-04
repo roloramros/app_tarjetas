@@ -75,3 +75,7 @@ class TransaccionResponse(TransaccionBase):
     fecha_creacion: datetime
     fecha_actualizacion: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+class AppVersionResponse(BaseModel):
+    version: str
+    model_config = ConfigDict(from_attributes=True)

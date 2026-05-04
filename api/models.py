@@ -52,3 +52,7 @@ class Transaccion(Base):
     fecha_actualizacion = Column(DateTime, onupdate=func.now())
 
     tarjeta = relationship("Tarjeta", back_populates="transacciones")
+
+class AppVersion(Base):
+    __tablename__ = "app_version"
+    version = Column(Text, primary_key=True)
