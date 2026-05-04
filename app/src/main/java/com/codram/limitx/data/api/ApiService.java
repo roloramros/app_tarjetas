@@ -8,6 +8,7 @@ import retrofit2.http.DELETE;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 import retrofit2.http.Path;
 
 public interface ApiService {
@@ -33,6 +34,19 @@ public interface ApiService {
     Call<Void> crearTransaccion(
         @Header("Authorization") String token,
         @Body TransaccionRequest request
+    );
+
+    @PUT("/transacciones/{transaccion_id}")
+    Call<TransaccionResponse> actualizarTransaccion(
+        @Header("Authorization") String token,
+        @Path("transaccion_id") UUID transaccion_id,
+        @Body TransaccionUpdate request
+    );
+
+    @DELETE("/transacciones/{transaccion_id}")
+    Call<Void> eliminarTransaccion(
+        @Header("Authorization") String token,
+        @Path("transaccion_id") UUID transaccion_id
     );
 
     @GET("/tarjetas/{tarjeta_id}/transacciones/mes")
