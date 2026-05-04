@@ -187,7 +187,23 @@ public class AdminUsuariosActivity extends AppCompatActivity {
             SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
             Date date = inputFormat.parse(rawDate);
             SimpleDateFormat outputFormat = new SimpleDateFormat("dd MMMM yyyy", new Locale("es", "ES"));
-            return outputFormat.format(date);
+            String formatted = outputFormat.format(date);
+
+            // Capitalizar el mes (ej: "01 mayo 2026" -> "01 Mayo 2026")
+            String[] parts = formatted.split(" ");
+            if (parts.length >= 2) {
+                String month = parts[1];
+                if (month.length() > 0) {
+                    parts[1] = month.substring(0, 1).toUpperCase() + month.substring(1);
+                }
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < parts.length; i++) {
+                    sb.append(parts[i]);
+                    if (i < parts.length - 1) sb.append(" ");
+                }
+                return sb.toString();
+            }
+            return formatted;
         } catch (Exception e) {
             e.printStackTrace();
             return rawDate;

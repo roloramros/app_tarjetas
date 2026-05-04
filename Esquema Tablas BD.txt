@@ -9,6 +9,14 @@ Par conectarse a la BD:
 psql -U limittx_user -d limittx_bd -h localhost -W
 
 
+ Table "public.app_version"
+ Column  |         Type          | Collation | Nullable | Default
+---------+-----------------------+-----------+----------+---------
+ version | character varying(50) |           |          |
+
+
+
+
 Table "public.usuarios"
        Column       |            Type             | Collation | Nullable |                  Default
 --------------------+-----------------------------+-----------+----------+-------------------------------------------

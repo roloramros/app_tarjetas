@@ -65,6 +65,7 @@ public class LoginActivity extends AppCompatActivity {
             public void onResponse(Call<TokenResponse> call, Response<TokenResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
                     sessionManager.saveToken(response.body().getAccessToken());
+                    sessionManager.saveUsername(user);
                     sessionManager.setKeepLoggedIn(cbRemember.isChecked());
                     goToMain();
                 } else {

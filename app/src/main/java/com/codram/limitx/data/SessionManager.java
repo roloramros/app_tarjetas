@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 public class SessionManager {
     private static final String PREF_NAME = "LimiTxSession";
     private static final String KEY_TOKEN = "auth_token";
+    private static final String KEY_USERNAME = "username";
     private static final String KEY_KEEP_LOGGED_IN = "keep_logged_in";
     private static final String KEY_SORT_ORDER = "sort_order";
     private static final String KEY_SUBSCRIPTION_ACTIVE = "subscription_active";
@@ -22,6 +23,14 @@ public class SessionManager {
 
     public String getToken() {
         return prefs.getString(KEY_TOKEN, null);
+    }
+
+    public void saveUsername(String username) {
+        prefs.edit().putString(KEY_USERNAME, username).apply();
+    }
+
+    public String getUsername() {
+        return prefs.getString(KEY_USERNAME, "");
     }
 
     public void setKeepLoggedIn(boolean keep) {

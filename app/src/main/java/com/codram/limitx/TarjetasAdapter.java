@@ -298,7 +298,15 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             tvExtraccionDisponible.setTextColor(Color.DKGRAY);
             tvDepositoDisponible.setText(context.getString(R.string.deposito_disponible_label) + depositoText + " " + moneda);
             tvDepositoDisponible.setTextColor(Color.DKGRAY);
+
+            if (tarjeta.getLimiteMensual() == 0) {
+                tvExtraccionDisponible.setVisibility(View.INVISIBLE);
+                tvDepositoDisponible.setVisibility(View.INVISIBLE);
+            } else {
+                tvExtraccionDisponible.setVisibility(View.VISIBLE);
+                tvDepositoDisponible.setVisibility(View.VISIBLE);
             }
+        }
 
         private String obfuscateCardNumber(String number) {
             if (number == null || number.length() <= 4) {

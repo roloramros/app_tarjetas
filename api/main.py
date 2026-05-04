@@ -79,6 +79,12 @@ async def login(
     return TokenResponse(access_token=token)
 
 # === CRUD Usuarios ===
+@app.get("/usuarios/me", response_model=UsuarioResponse)
+async def obtener_usuario_actual(
+    current_user: Usuario = Depends(get_current_user)
+):
+    return current_user
+
 @app.post("/usuarios", response_model=UsuarioResponse, status_code=201)
 async def crear_usuario(
     data: UsuarioCreate,
@@ -104,8 +110,20 @@ async def listar_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    result = await db.execute(select(Usuario).order_by(Usuario.fecha_creacion.desc()))
-    return result.scalars().all()
+    # Join with Tarjeta to get the count
+    query = select(
+        Usuario,
+        func.count(Tarjeta.id).label("cantidad_tarjetas")
+    ).outerjoin(Tarjeta).group_by(Usuario.id).order_by(Usuario.fecha_creacion.desc())
+    
+    result = await db.execute(query)
+    usuarios_con_conteo = []
+    for usuario, cantidad in result:
+        u_dict = UsuarioResponse.model_validate(usuario).model_dump()
+        u_dict["cantidad_tarjetas"] = cantidad
+        usuarios_con_conteo.append(u_dict)
+        
+    return usuarios_con_conteo
 
 @app.get("/usuarios/{user_id}", response_model=UsuarioResponse)
 async def obtener_usuario(
@@ -159,11 +177,6 @@ async def eliminar_usuario(
     await db.commit()
     return {"msg": f"Usuario {user.nombre} eliminado"}
 
-@app.get("/usuarios/me", response_model=UsuarioResponse)
-async def obtener_usuario_actual(
-    current_user: Usuario = Depends(get_current_user)
-):
-    return current_user
 
 # === CRUD Tarjetas ===
 @app.post("/tarjetas", response_model=TarjetaResponse, status_code=201)

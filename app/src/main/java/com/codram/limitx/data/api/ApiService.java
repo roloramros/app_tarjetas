@@ -44,8 +44,20 @@ public interface ApiService {
     @GET("/tarjetas")
     Call<List<TarjetaResponse>> getTarjetas(@Header("Authorization") String token);
 
+    @GET("/usuarios")
+    Call<List<UsuarioResponse>> getUsuarios(@Header("Authorization") String token);
+
+    @DELETE("/usuarios/{user_id}")
+    Call<Void> eliminarUsuario(
+        @Header("Authorization") String token,
+        @Path("user_id") String user_id
+    );
+
     @GET("/usuarios/me")
     Call<UsuarioResponse> getMe(@Header("Authorization") String token);
+
+    @GET("/admin/stats")
+    Call<AdminStatsResponse> getAdminStats(@Header("Authorization") String token);
 
     @GET("/app-version")
     Call<AppVersionResponse> getAppVersion();

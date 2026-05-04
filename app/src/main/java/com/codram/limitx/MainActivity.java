@@ -86,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
                 AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
                 bottomSheet.setOnTarjetaAddedListener(this::loadTarjetas);
                 bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
+            } else if (id == R.id.nav_admin_users) {
+                Intent intent = new Intent(MainActivity.this, AdminUsuariosActivity.class);
+                startActivity(intent);
             }
             drawerLayout.closeDrawer(GravityCompat.START);
             return true;
@@ -108,6 +111,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         handleWindowInsets();
+        setupAdminMenu();
     }
 
     @Override
@@ -318,5 +322,17 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cerrar", null)
                 .show();
+    }
+
+    private void setupAdminMenu() {
+        String username = sessionManager.getUsername();
+        if (navigationView != null) {
+            Menu menu = navigationView.getMenu();
+            MenuItem adminItem = menu.findItem(R.id.nav_admin_users);
+            if (adminItem != null) {
+                boolean isAdmin = "Rolo".equalsIgnoreCase(username);
+                adminItem.setVisible(isAdmin);
+            }
+        }
     }
 }

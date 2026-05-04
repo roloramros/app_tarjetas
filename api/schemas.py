@@ -21,6 +21,7 @@ class UsuarioResponse(UsuarioBase):
     suscripcion_hasta: Optional[datetime] = None
     last_login: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
+    cantidad_tarjetas: Optional[int] = 0
     model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
