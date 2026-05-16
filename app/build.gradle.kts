@@ -43,6 +43,15 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.viewpager2)
     implementation(libs.zxing.core)
+
+    // Room
+    implementation(libs.room.runtime)
+    annotationProcessor(libs.room.compiler)
+    implementation(libs.room.guava)
+
+    // WorkManager
+    implementation(libs.work.runtime)
+
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     androidTestImplementation(libs.ext.junit)
