@@ -17,9 +17,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.viewpager2.widget.ViewPager2;
 import com.codram.limitx.data.SessionManager;
+import com.codram.limitx.data.LimiTxRepository;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.AppVersionResponse;
-import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.data.local.entity.TarjetaEntity;
+import com.codram.limitx.utils.ConnectivityHelper;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -39,10 +41,12 @@ public class MainActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private TarjetasPagerAdapter pagerAdapter;
     private TextView tvSaldoTotal;
+    private TextView tvOfflineBanner;
     private SessionManager sessionManager;
+    private LimiTxRepository repository;
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
-    private List<TarjetaResponse> listaTarjetasOriginal = new ArrayList<>();
+    private List<TarjetaEntity> listaTarjetasOriginal = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +60,11 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         sessionManager = new SessionManager(this);
+        repository = new LimiTxRepository(this);
         viewPager = findViewById(R.id.viewPager);
         tabLayout = findViewById(R.id.tabLayout);
         tvSaldoTotal = findViewById(R.id.tvSaldoTotal);
+        tvOfflineBanner = findViewById(R.id.tvOfflineBanner);
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         
@@ -144,7 +150,11 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             @Override
-            public void onFailure(Call<com.codram.limitx.data.api.UsuarioResponse> call, Throwable t) {}
+            public void onFailure(Call<com.codram.limitx.data.api.UsuarioResponse> call, Throwable t) {
+                if (pagerAdapter != null) {
+                    pagerAdapter.setSubscriptionActive(sessionManager.isSubscriptionActive());
+                }
+            }
         });
     }
 
@@ -182,9 +192,9 @@ public class MainActivity extends AppCompatActivity {
 
         double total = 0;
         if (listaTarjetasOriginal != null) {
-            for (TarjetaResponse tarjeta : listaTarjetasOriginal) {
-                if (tarjeta != null && monedaFiltro.equals(tarjeta.getMoneda())) {
-                    total += tarjeta.getSaldo_tarjeta();
+            for (TarjetaEntity tarjeta : listaTarjetasOriginal) {
+                if (tarjeta != null && monedaFiltro.equals(tarjeta.moneda)) {
+                    total += tarjeta.saldoTarjeta;
                 }
             }
         }
@@ -209,15 +219,15 @@ public class MainActivity extends AppCompatActivity {
 
                 switch (criterio) {
                     case "nombre":
-                        String n1 = t1.getNombre() != null ? t1.getNombre() : "";
-                        String n2 = t2.getNombre() != null ? t2.getNombre() : "";
+                        String n1 = t1.nombre != null ? t1.nombre : "";
+                        String n2 = t2.nombre != null ? t2.nombre : "";
                         return n1.compareToIgnoreCase(n2);
                     case "saldo":
-                        return Double.compare(t2.getSaldo_tarjeta(), t1.getSaldo_tarjeta());
+                        return Double.compare(t2.saldoTarjeta, t1.saldoTarjeta);
                     case "extraccion":
-                        return Double.compare(t2.getExtraccion_disponible(), t1.getExtraccion_disponible());
+                        return Double.compare(t2.extraccionDisponible, t1.extraccionDisponible);
                     case "deposito":
-                        return Double.compare(t2.getDeposito_disponible(), t1.getDeposito_disponible());
+                        return Double.compare(t2.depositoDisponible, t1.depositoDisponible);
                     default:
                         return 0;
                 }
@@ -232,34 +242,58 @@ public class MainActivity extends AppCompatActivity {
     private void loadTarjetas() {
         showLoading(true);
         String token = "Bearer " + sessionManager.getToken();
+        String usuarioId = sessionManager.getUserId();
 
-        ApiClient.getService().getTarjetas(token).enqueue(new Callback<List<TarjetaResponse>>() {
-            @Override
-            public void onResponse(Call<List<TarjetaResponse>> call, Response<List<TarjetaResponse>> response) {
-                showLoading(false);
-                if (response.isSuccessful() && response.body() != null) {
-                    listaTarjetasOriginal = new ArrayList<>(response.body());
-                    String savedOrder = sessionManager.getSortOrder();
-                    ordenarTarjetas(savedOrder);
+        // Fallback para usuarios antiguos sin ID
+        if (usuarioId == null) {
+            ApiClient.getService().getMe(token).enqueue(new Callback<com.codram.limitx.data.api.UsuarioResponse>() {
+                @Override
+                public void onResponse(Call<com.codram.limitx.data.api.UsuarioResponse> call, Response<com.codram.limitx.data.api.UsuarioResponse> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        sessionManager.saveUserId(response.body().getId().toString());
+                        loadTarjetas(); // Reintentar con el ID
+                    }
                 }
-            }
+                @Override
+                public void onFailure(Call<com.codram.limitx.data.api.UsuarioResponse> call, Throwable t) {
+                    showLoading(false);
+                }
+            });
+            return;
+        }
+
+        repository.getTarjetas(usuarioId, token, new LimiTxRepository.Callback<List<TarjetaEntity>>() {
             @Override
-            public void onFailure(Call<List<TarjetaResponse>> call, Throwable t) {
+            public void onSuccess(List<TarjetaEntity> result) {
+                showLoading(false);
+                listaTarjetasOriginal = new ArrayList<>(result);
+                String savedOrder = sessionManager.getSortOrder();
+                ordenarTarjetas(savedOrder);
+                actualizarBannerConectividad();
+            }
+
+            @Override
+            public void onError(String mensaje) {
                 showLoading(false);
             }
         });
     }
 
+    private void actualizarBannerConectividad() {
+        boolean online = ConnectivityHelper.isOnline(this);
+        tvOfflineBanner.setVisibility(online ? View.GONE : View.VISIBLE);
+    }
+
     private void distribuirTarjetas() {
-        List<TarjetaResponse> cup = new ArrayList<>();
-        List<TarjetaResponse> usd = new ArrayList<>();
-        List<TarjetaResponse> mlc = new ArrayList<>();
+        List<TarjetaEntity> cup = new ArrayList<>();
+        List<TarjetaEntity> usd = new ArrayList<>();
+        List<TarjetaEntity> mlc = new ArrayList<>();
         if (listaTarjetasOriginal != null) {
-            for (TarjetaResponse t : listaTarjetasOriginal) {
+            for (TarjetaEntity t : listaTarjetasOriginal) {
                 if (t == null) continue;
-                if ("CUP".equals(t.getMoneda())) cup.add(t);
-                else if ("USD".equals(t.getMoneda())) usd.add(t);
-                else if ("MLC".equals(t.getMoneda())) mlc.add(t);
+                if ("CUP".equals(t.moneda)) cup.add(t);
+                else if ("USD".equals(t.moneda)) usd.add(t);
+                else if ("MLC".equals(t.moneda)) mlc.add(t);
             }
         }
         

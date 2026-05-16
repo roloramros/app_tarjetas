@@ -12,11 +12,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.codram.limitx.data.LimiTxRepository;
 import com.codram.limitx.data.api.ApiClient;
-import com.codram.limitx.data.api.ApiService;
-import com.codram.limitx.data.api.TarjetaResponse;
 import com.codram.limitx.data.api.TransaccionResponse;
 import com.codram.limitx.data.api.TransaccionUpdate;
+import com.codram.limitx.data.local.entity.TarjetaEntity;
+import com.codram.limitx.data.local.entity.TransaccionEntity;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.utils.TransactionDialogHelper;
 import com.google.android.material.button.MaterialButton;
@@ -41,8 +42,9 @@ import androidx.core.view.WindowInsetsCompat;
 public class HistorialActivity extends AppCompatActivity {
     private RecyclerView rvEntradas, rvSalidas;
     private android.widget.TextView tvSaldoActual;
-    private List<TransaccionResponse> entradas = new ArrayList<>();
-    private List<TransaccionResponse> salidas = new ArrayList<>();
+    private List<TransaccionEntity> entradas = new ArrayList<>();
+    private List<TransaccionEntity> salidas = new ArrayList<>();
+    private LimiTxRepository repository;
     private UUID tarjetaId;
     private String tarjetaNombre;
 
@@ -51,6 +53,8 @@ public class HistorialActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_historial);
+
+        repository = new LimiTxRepository(this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -133,21 +137,21 @@ public class HistorialActivity extends AppCompatActivity {
 
     private void cargarSaldoTarjeta(UUID tarjetaId) {
         String token = new SessionManager(this).getToken();
-        ApiClient.getService().getTarjetas("Bearer " + token).enqueue(new Callback<List<TarjetaResponse>>() {
+        String usuarioId = new SessionManager(this).getUserId();
+        if (usuarioId == null) return;
+
+        repository.getTarjetas(usuarioId, "Bearer " + token, new LimiTxRepository.Callback<List<TarjetaEntity>>() {
             @Override
-            public void onResponse(Call<List<TarjetaResponse>> call, Response<List<TarjetaResponse>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    for (TarjetaResponse t : response.body()) {
-                        if (t.getId().equals(tarjetaId)) {
-                            actualizarVistaSaldo(t.getSaldo_tarjeta(), t.getMoneda());
-                            break;
-                        }
+            public void onSuccess(List<TarjetaEntity> result) {
+                for (TarjetaEntity t : result) {
+                    if (t.id.equals(tarjetaId.toString())) {
+                        actualizarVistaSaldo(t.saldoTarjeta, t.moneda);
+                        break;
                     }
                 }
             }
-
             @Override
-            public void onFailure(Call<List<TarjetaResponse>> call, Throwable t) {}
+            public void onError(String mensaje) {}
         });
     }
 
@@ -156,49 +160,43 @@ public class HistorialActivity extends AppCompatActivity {
         String token = new SessionManager(this).getToken();
         android.util.Log.d("LimiTxDebug", "Cargando transacciones para: " + tarjetaId);
 
-        ApiClient.getService().getTransaccionesMes("Bearer " + token, tarjetaId).enqueue(new Callback<List<TransaccionResponse>>() {
+        repository.getTransacciones(tarjetaId.toString(), "Bearer " + token, new LimiTxRepository.Callback<List<TransaccionEntity>>() {
             @Override
-            public void onResponse(Call<List<TransaccionResponse>> call, Response<List<TransaccionResponse>> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    android.util.Log.d("LimiTxDebug", "Transacciones recibidas: " + response.body().size());
-                    entradas.clear();
-                    salidas.clear();
-                    for (TransaccionResponse t : response.body()) {
-                        if ("entrada".equals(t.getTipo())) {
-                            entradas.add(t);
-                        } else {
-                            salidas.add(t);
-                        }
+            public void onSuccess(List<TransaccionEntity> result) {
+                android.util.Log.d("LimiTxDebug", "Transacciones recibidas: " + result.size());
+                entradas.clear();
+                salidas.clear();
+                for (TransaccionEntity t : result) {
+                    if ("entrada".equals(t.tipo)) {
+                        entradas.add(t);
+                    } else {
+                        salidas.add(t);
                     }
-                    android.util.Log.d("LimiTxDebug", "Entradas: " + entradas.size() + ", Salidas: " + salidas.size());
-                    // Configurar adaptadores
-                    rvEntradas.setAdapter(new TransaccionesAdapter(entradas, t -> mostrarDialogoEdicion(t, tarjetaId)));
-                    rvSalidas.setAdapter(new TransaccionesAdapter(salidas, t -> mostrarDialogoEdicion(t, tarjetaId)));
-                } else {
-                    android.util.Log.e("LimiTxDebug", "Error en respuesta: " + response.code());
                 }
+                android.util.Log.d("LimiTxDebug", "Entradas: " + entradas.size() + ", Salidas: " + salidas.size());
+                rvEntradas.setAdapter(new TransaccionesAdapter(entradas, t -> mostrarDialogoEdicion(t, tarjetaId)));
+                rvSalidas.setAdapter(new TransaccionesAdapter(salidas, t -> mostrarDialogoEdicion(t, tarjetaId)));
             }
 
             @Override
-            public void onFailure(Call<List<TransaccionResponse>> call, Throwable t) {
-                android.util.Log.e("LimiTxDebug", "Fallo en la petición", t);
+            public void onError(String mensaje) {
+                android.util.Log.e("LimiTxDebug", "Error al cargar transacciones: " + mensaje);
             }
         });
     }
 
-    private void mostrarDialogoEdicion(TransaccionResponse transaccion, UUID tarjetaId) {
+    private void mostrarDialogoEdicion(TransaccionEntity transaccion, UUID tarjetaId) {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_transaccion, null);
         TextInputEditText etMonto = dialogView.findViewById(R.id.etEditMonto);
         TextInputEditText etDescripcion = dialogView.findViewById(R.id.etEditDescripcion);
         MaterialButton btnFecha = dialogView.findViewById(R.id.btnEditFecha);
 
-        etMonto.setText(transaccion.getMonto().toString());
-        if (transaccion.getDescripcion() != null) {
-            etDescripcion.setText(transaccion.getDescripcion());
+        etMonto.setText(transaccion.monto);
+        if (transaccion.descripcion != null) {
+            etDescripcion.setText(transaccion.descripcion);
         }
 
-        final String[] fechaSeleccionada = {transaccion.getFecha()};
-        // Mostrar fecha formateada en el botón
+        final String[] fechaSeleccionada = {transaccion.fecha};
         try {
             LocalDateTime dateTime = LocalDateTime.parse(fechaSeleccionada[0], java.time.format.DateTimeFormatter.ISO_DATE_TIME);
             btnFecha.setText(dateTime.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
@@ -229,13 +227,13 @@ public class HistorialActivity extends AppCompatActivity {
                         TransaccionUpdate update = new TransaccionUpdate(monto, descripcion, fechaSeleccionada[0]);
                         
                         String token = new SessionManager(this).getToken();
-                        ApiClient.getService().actualizarTransaccion("Bearer " + token, transaccion.getId(), update)
+                        ApiClient.getService().actualizarTransaccion("Bearer " + token, UUID.fromString(transaccion.id), update)
                             .enqueue(new Callback<TransaccionResponse>() {
                                 @Override
                                 public void onResponse(Call<TransaccionResponse> call, Response<TransaccionResponse> response) {
                                     if (response.isSuccessful()) {
                                         Toast.makeText(HistorialActivity.this, "Actualizado", Toast.LENGTH_SHORT).show();
-                                        cargarTransacciones(tarjetaId); // Recargar
+                                        cargarTransacciones(tarjetaId);
                                     } else {
                                         Toast.makeText(HistorialActivity.this, "Error al actualizar", Toast.LENGTH_SHORT).show();
                                     }
@@ -254,28 +252,24 @@ public class HistorialActivity extends AppCompatActivity {
                 .show();
     }
 
-    private void confirmarEliminacion(TransaccionResponse transaccion, UUID tarjetaId) {
+    private void confirmarEliminacion(TransaccionEntity transaccion, UUID tarjetaId) {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Eliminar Transacción")
                 .setMessage("¿Estás seguro de que deseas eliminar esta transacción?")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     String token = new SessionManager(this).getToken();
-                    ApiClient.getService().eliminarTransaccion("Bearer " + token, transaccion.getId())
-                        .enqueue(new Callback<Void>() {
-                            @Override
-                            public void onResponse(Call<Void> call, Response<Void> response) {
-                                if (response.isSuccessful()) {
-                                    Toast.makeText(HistorialActivity.this, "Eliminado", Toast.LENGTH_SHORT).show();
-                                    cargarTransacciones(tarjetaId); // Recargar
-                                } else {
-                                    Toast.makeText(HistorialActivity.this, "Error al eliminar", Toast.LENGTH_SHORT).show();
-                                }
-                            }
-                            @Override
-                            public void onFailure(Call<Void> call, Throwable t) {
-                                Toast.makeText(HistorialActivity.this, "Error de red", Toast.LENGTH_SHORT).show();
-                            }
-                        });
+                    repository.eliminarTransaccion(transaccion.id, "Bearer " + token, new LimiTxRepository.Callback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            Toast.makeText(HistorialActivity.this, "Eliminado", Toast.LENGTH_SHORT).show();
+                            cargarTransacciones(tarjetaId);
+                        }
+
+                        @Override
+                        public void onError(String mensaje) {
+                            Toast.makeText(HistorialActivity.this, "Error al eliminar", Toast.LENGTH_SHORT).show();
+                        }
+                    });
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();

@@ -8,9 +8,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
-import com.codram.limitx.data.api.AppVersionResponse;
 import com.codram.limitx.data.api.LoginRequest;
 import com.codram.limitx.data.api.TokenResponse;
+import com.codram.limitx.data.api.UsuarioResponse;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import retrofit2.Call;
@@ -25,8 +25,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-
 
         sessionManager = new SessionManager(this);
 
@@ -64,10 +62,29 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<TokenResponse> call, Response<TokenResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    sessionManager.saveToken(response.body().getAccessToken());
-                    sessionManager.saveUsername(user);
+                    String token = response.body().getAccessToken();
+                    sessionManager.saveToken(token);
                     sessionManager.setKeepLoggedIn(cbRemember.isChecked());
-                    goToMain();
+
+                    // Obtener datos del usuario para guardar el ID
+                    ApiClient.getService().getMe("Bearer " + token).enqueue(new Callback<UsuarioResponse>() {
+                        @Override
+                        public void onResponse(Call<UsuarioResponse> call2, Response<UsuarioResponse> response2) {
+                            if (response2.isSuccessful() && response2.body() != null) {
+                                sessionManager.saveUserId(response2.body().getId().toString());
+                                sessionManager.saveUsername(response2.body().getNombreUsuario());
+                            } else {
+                                sessionManager.saveUsername(user);
+                            }
+                            goToMain();
+                        }
+
+                        @Override
+                        public void onFailure(Call<UsuarioResponse> call2, Throwable t) {
+                            sessionManager.saveUsername(user); 
+                            goToMain();
+                        }
+                    });
                 } else {
                     Toast.makeText(LoginActivity.this, "Credenciales inválidas", Toast.LENGTH_SHORT).show();
                 }
@@ -85,5 +102,4 @@ public class LoginActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
-    
 }

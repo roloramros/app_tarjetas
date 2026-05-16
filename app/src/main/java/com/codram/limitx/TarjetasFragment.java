@@ -12,7 +12,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.data.local.entity.TarjetaEntity;
 import com.codram.limitx.utils.TransactionDialogHelper;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class TarjetasFragment extends Fragment {
     private ProgressBar progressBar;
     private TextView tvEmptyState;
     private TarjetasAdapter adapter;
-    private List<TarjetaResponse> tarjetas = new ArrayList<>();
+    private List<TarjetaEntity> tarjetas = new ArrayList<>();
     private Runnable onRefreshListener;
     private TransactionDialogHelper.OnTransactionAddedListener transactionListener;
     private boolean isSubscriptionActive = true;
@@ -48,7 +48,7 @@ public class TarjetasFragment extends Fragment {
         this.transactionListener = listener;
     }
 
-    private List<TarjetaResponse> pendingData;
+    private List<TarjetaEntity> pendingData;
 
     @Nullable
     @Override
@@ -73,7 +73,7 @@ public class TarjetasFragment extends Fragment {
         return view;
     }
 
-    public void updateData(List<TarjetaResponse> nuevasTarjetas) {
+    public void updateData(List<TarjetaEntity> nuevasTarjetas) {
         if (rvTarjetas == null) {
             // La vista aún no se ha creado, guardamos los datos para después
             this.pendingData = nuevasTarjetas;

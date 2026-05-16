@@ -7,16 +7,15 @@ import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import com.codram.limitx.data.LimiTxRepository;
 import com.codram.limitx.data.SessionManager;
-import com.codram.limitx.data.api.ApiClient;
-import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.data.local.entity.TarjetaEntity;
 import com.codram.limitx.utils.QRUtils;
 import com.codram.limitx.utils.TransactionDialogHelper;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -24,21 +23,18 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 import java.util.Locale;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
 
 public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.TarjetaViewHolder> {
 
-    private List<TarjetaResponse> tarjetas;
+    private List<TarjetaEntity> tarjetas;
     private TransactionDialogHelper.OnTransactionAddedListener transactionListener;
     private boolean isSubscriptionActive = true;
 
-    public TarjetasAdapter(List<TarjetaResponse> tarjetas, TransactionDialogHelper.OnTransactionAddedListener transactionListener) {
+    public TarjetasAdapter(List<TarjetaEntity> tarjetas, TransactionDialogHelper.OnTransactionAddedListener transactionListener) {
         this(tarjetas, transactionListener, true);
     }
 
-    public TarjetasAdapter(List<TarjetaResponse> tarjetas, TransactionDialogHelper.OnTransactionAddedListener transactionListener, boolean isSubscriptionActive) {
+    public TarjetasAdapter(List<TarjetaEntity> tarjetas, TransactionDialogHelper.OnTransactionAddedListener transactionListener, boolean isSubscriptionActive) {
         this.tarjetas = tarjetas;
         this.transactionListener = transactionListener;
         this.isSubscriptionActive = isSubscriptionActive;
@@ -58,7 +54,7 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
 
     @Override
     public void onBindViewHolder(@NonNull TarjetaViewHolder holder, int position) {
-        TarjetaResponse tarjeta = tarjetas.get(position);
+        TarjetaEntity tarjeta = tarjetas.get(position);
         holder.bind(tarjeta);
 
         boolean isDisabled = !isSubscriptionActive && position > 0;
@@ -74,20 +70,18 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             holder.itemView.setAlpha(1.0f);
             holder.itemView.setOnClickListener(v -> {
                 android.content.Intent intent = new android.content.Intent(v.getContext(), HistorialActivity.class);
-                intent.putExtra("TARJETA_ID", tarjeta.getId().toString());
-                intent.putExtra("TARJETA_NOMBRE", tarjeta.getNombre());
-                intent.putExtra("TARJETA_SALDO", tarjeta.getSaldo_tarjeta());
-                intent.putExtra("TARJETA_MONEDA", tarjeta.getMoneda());
+                intent.putExtra("TARJETA_ID", tarjeta.id);
+                intent.putExtra("TARJETA_NOMBRE", tarjeta.nombre);
+                intent.putExtra("TARJETA_SALDO", tarjeta.saldoTarjeta);
+                intent.putExtra("TARJETA_MONEDA", tarjeta.moneda);
                 v.getContext().startActivity(intent);
             });
 
             holder.itemView.setOnLongClickListener(v -> {
-
                 ClipboardManager clipboard = (ClipboardManager) v.getContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("Número de tarjeta", tarjeta.getNumero());
+                ClipData clip = ClipData.newPlainText("Número de tarjeta", tarjeta.numero);
                 clipboard.setPrimaryClip(clip);
                 Toast.makeText(v.getContext(), "Número de Tarjeta copiado al portapapeles", Toast.LENGTH_LONG).show();
-
 
                 PopupMenu popup = new PopupMenu(v.getContext(), v);
                 popup.getMenu().add("Añadir Depósito");
@@ -97,11 +91,11 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
                 popup.getMenu().add("Eliminar Tarjeta");
                 popup.setOnMenuItemClickListener(item -> {
                     if (item.getTitle().equals("Añadir Depósito") || item.getTitle().equals("Añadir Extracción")) {
-                        TransactionDialogHelper.showTransactionDialog(v.getContext(), item.getTitle().toString(), tarjeta.getId(), tarjeta.getNombre(), transactionListener);
+                        TransactionDialogHelper.showTransactionDialog(v.getContext(), item.getTitle().toString(), java.util.UUID.fromString(tarjeta.id), tarjeta.nombre, transactionListener);
                         return true;
                     }
                     else if (item.getTitle().equals("Mostrar QR")) {
-                        showQRDialog(v.getContext(), tarjeta.getNumero());
+                        showQRDialog(v.getContext(), tarjeta.numero);
                         return true;
                     }
                     else if (item.getTitle().equals("Eliminar Tarjeta")) {
@@ -109,22 +103,23 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
                             .setTitle("Confirmar eliminación")
                             .setMessage("¿Estás seguro de que deseas eliminar esta tarjeta? Esta operación es irreversible y se perderá toda la información relacionada con esta tarjeta del historial del sistema.")
                             .setPositiveButton("Eliminar", (dialog, which) -> {
-                                String token = new SessionManager(v.getContext()).getToken();
-                                ApiClient.getService().eliminarTarjeta("Bearer " + token, tarjeta.getId()).enqueue(new Callback<Void>() {
+                                Context context = v.getContext();
+                                String token = new SessionManager(context).getToken();
+                                LimiTxRepository repo = new LimiTxRepository(context);
+                                repo.eliminarTarjeta(tarjeta.id, "Bearer " + token, new LimiTxRepository.Callback<Void>() {
                                     @Override
-                                    public void onResponse(Call<Void> call, Response<Void> response) {
-                                        if (response.isSuccessful()) {
-                                            Toast.makeText(v.getContext(), "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
-                                            tarjetas.remove(holder.getAdapterPosition());
-                                            notifyItemRemoved(holder.getAdapterPosition());
+                                    public void onSuccess(Void result) {
+                                        Toast.makeText(context, "Tarjeta eliminada", Toast.LENGTH_SHORT).show();
+                                        int pos = holder.getAdapterPosition();
+                                        if (pos != RecyclerView.NO_POSITION) {
+                                            tarjetas.remove(pos);
+                                            notifyItemRemoved(pos);
                                             if (transactionListener != null) transactionListener.onTransactionAdded(); // Refrescar saldo total
-                                        } else {
-                                            Toast.makeText(v.getContext(), "Error al eliminar", Toast.LENGTH_SHORT).show();
                                         }
                                     }
                                     @Override
-                                    public void onFailure(Call<Void> call, Throwable t) {
-                                        Toast.makeText(v.getContext(), "Error de red", Toast.LENGTH_SHORT).show();
+                                    public void onError(String mensaje) {
+                                        Toast.makeText(context, "Error al eliminar", Toast.LENGTH_SHORT).show();
                                     }
                                 });
                             })
@@ -142,7 +137,7 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
         }
     }
 
-    public void updateData(List<TarjetaResponse> nuevasTarjetas) {
+    public void updateData(List<TarjetaEntity> nuevasTarjetas) {
         this.tarjetas = nuevasTarjetas;
         notifyDataSetChanged();
     }
@@ -166,38 +161,24 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             tvDepositoDisponible = itemView.findViewById(R.id.tvDepositoDisponible);
         }
 
-        public void bind(TarjetaResponse tarjeta) {
-            tvCardName.setText(tarjeta.getNombre());
+        public void bind(TarjetaEntity tarjeta) {
+            tvCardName.setText(tarjeta.nombre);
             
-            // Set dynamic icon
-            String bancoStr = tarjeta.getBanco();
-            int iconResId = R.drawable.clasica; // Default fallback
+            String bancoStr = tarjeta.banco;
+            int iconResId = R.drawable.clasica; 
             if (bancoStr != null) {
                 String bancoLower = bancoStr.toLowerCase().trim();
                 switch (bancoLower) {
-                    case "bpa":
-                        iconResId = R.drawable.bpa;
-                        break;
-                    case "metro":
-                        iconResId = R.drawable.metro;
-                        break;
-                    case "bandec":
-                        iconResId = R.drawable.bandec;
-                        break;
-                    case "tropical":
-                        iconResId = R.drawable.tropical;
-                        break;
-                    case "clasica":
-                        iconResId = R.drawable.clasica;
-                        break;
-                    default:
-                        iconResId = R.drawable.clasica;
-                        break;
+                    case "bpa": iconResId = R.drawable.bpa; break;
+                    case "metro": iconResId = R.drawable.metro; break;
+                    case "bandec": iconResId = R.drawable.bandec; break;
+                    case "tropical": iconResId = R.drawable.tropical; break;
+                    default: iconResId = R.drawable.clasica; break;
                 }
             }
             ivCardIcon.setImageResource(iconResId);
 
-            tvCardNumber.setText(obfuscateCardNumber(tarjeta.getNumero()));
+            tvCardNumber.setText(obfuscateCardNumber(tarjeta.numero));
 
             java.text.DecimalFormat df = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(Locale.US);
             java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
@@ -205,19 +186,18 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             df.setDecimalFormatSymbols(symbols);
             df.setMaximumFractionDigits(0);
 
-            String moneda = tarjeta.getMoneda();
+            String moneda = tarjeta.moneda;
             Context context = itemView.getContext();
-            tvSaldoTarjeta.setText(context.getString(R.string.saldo_tarjeta_label) + df.format(tarjeta.getSaldo_tarjeta()) + " " + moneda);
+            tvSaldoTarjeta.setText(context.getString(R.string.saldo_tarjeta_label) + df.format(tarjeta.saldoTarjeta) + " " + moneda);
             tvSaldoTarjeta.setTextColor(Color.BLACK);
 
-            double extraccion = tarjeta.getExtraccion_disponible();
-            double deposito = tarjeta.getDeposito_disponible();
+            double extraccion = tarjeta.extraccionDisponible;
+            double deposito = tarjeta.depositoDisponible;
 
             String extraccionText = df.format(extraccion);
             String depositoText = df.format(deposito);
 
             if (deposito < 0) {
-                // Si el depósito es negativo, mostramos 0 en depósito y el excedente en extracción
                 extraccionText += " (" + df.format(Math.abs(deposito)) + ")";
                 depositoText = "0";
             }
@@ -227,7 +207,7 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             tvDepositoDisponible.setText(context.getString(R.string.deposito_disponible_label) + depositoText + " " + moneda);
             tvDepositoDisponible.setTextColor(Color.DKGRAY);
 
-            if (tarjeta.getLimiteMensual() == 0) {
+            if (tarjeta.limiteMensual == 0) {
                 tvExtraccionDisponible.setVisibility(View.INVISIBLE);
                 tvDepositoDisponible.setVisibility(View.INVISIBLE);
             } else {
@@ -254,7 +234,6 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
         String savedPhone = sessionManager.getPhoneNumber();
         etPhoneNumber.setText(savedPhone);
 
-        // Initial QR generation
         updateQRCode(ivQRCode, cardNumber, savedPhone);
 
         tilPhoneNumber.setEndIconOnClickListener(v -> {
@@ -272,7 +251,6 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
     }
 
     private void updateQRCode(ImageView ivQRCode, String cardNumber, String phoneNumber) {
-        // TRANSFERMOVIL_ETECSA,TRANSFERENCIA,9200069993170665,55525290,
         String qrContent = String.format("TRANSFERMOVIL_ETECSA,TRANSFERENCIA,%s,%s,", cardNumber, phoneNumber);
         try {
             android.graphics.Bitmap bitmap = QRUtils.generateQRCode(qrContent, 500, 500);
@@ -283,4 +261,3 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
         }
     }
 }
-

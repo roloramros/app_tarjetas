@@ -1,6 +1,7 @@
 package com.codram.limitx.data.local.entity;
 
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "sync_queue")
@@ -17,6 +18,7 @@ public class SyncQueueEntity {
 
     public SyncQueueEntity() {}
 
+    @Ignore
     public SyncQueueEntity(String operacion, String payload, String localId) {
         this.operacion = operacion;
         this.payload = payload;

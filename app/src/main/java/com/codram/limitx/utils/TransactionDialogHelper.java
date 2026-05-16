@@ -6,9 +6,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 import com.codram.limitx.R;
+import com.codram.limitx.data.LimiTxRepository;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TransaccionRequest;
+import com.codram.limitx.data.local.entity.TransaccionEntity;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -82,19 +84,17 @@ public class TransactionDialogHelper {
                 );
 
                 String token = new SessionManager(context).getToken();
-                ApiClient.getService().crearTransaccion("Bearer " + token, request).enqueue(new Callback<Void>() {
+                LimiTxRepository repo = new LimiTxRepository(context);
+                repo.crearTransaccion(request, "Bearer " + token, new LimiTxRepository.Callback<TransaccionEntity>() {
                     @Override
-                    public void onResponse(Call<Void> call, Response<Void> response) {
-                        if (response.isSuccessful()) {
-                            Toast.makeText(context, "Transacción guardada", Toast.LENGTH_SHORT).show();
-                            if (listener != null) listener.onTransactionAdded();
-                        } else {
-                            Toast.makeText(context, "Error: " + response.code(), Toast.LENGTH_SHORT).show();
-                        }
+                    public void onSuccess(TransaccionEntity result) {
+                        Toast.makeText(context, "Transacción guardada", Toast.LENGTH_SHORT).show();
+                        if (listener != null) listener.onTransactionAdded();
                     }
+
                     @Override
-                    public void onFailure(Call<Void> call, Throwable t) {
-                        Toast.makeText(context, "Error de red", Toast.LENGTH_SHORT).show();
+                    public void onError(String mensaje) {
+                        Toast.makeText(context, "Error al guardar transacción", Toast.LENGTH_SHORT).show();
                     }
                 });
             })

@@ -10,10 +10,12 @@ import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import com.codram.limitx.data.LimiTxRepository;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TarjetaRequest;
 import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.data.local.entity.TarjetaEntity;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -138,22 +140,20 @@ public class AddTarjetaBottomSheet extends DialogFragment {
         
         SessionManager sessionManager = new SessionManager(getContext());
         String token = "Bearer " + sessionManager.getToken();
+        String userId = sessionManager.getUserId();
 
-        ApiClient.getService().createTarjeta(token, request).enqueue(new Callback<TarjetaResponse>() {
+        LimiTxRepository repo = new LimiTxRepository(requireContext());
+        repo.crearTarjeta(request, userId, token, new LimiTxRepository.Callback<TarjetaEntity>() {
             @Override
-            public void onResponse(Call<TarjetaResponse> call, Response<TarjetaResponse> response) {
-                if (response.isSuccessful()) {
-                    Toast.makeText(getContext(), "Tarjeta añadida con éxito", Toast.LENGTH_SHORT).show();
-                    if (listener != null) listener.onTarjetaAdded();
-                    dismiss();
-                } else {
-                    Toast.makeText(getContext(), "Error al añadir tarjeta: " + response.message(), Toast.LENGTH_SHORT).show();
-                }
+            public void onSuccess(TarjetaEntity result) {
+                Toast.makeText(getContext(), "Tarjeta añadida con éxito", Toast.LENGTH_SHORT).show();
+                if (listener != null) listener.onTarjetaAdded();
+                dismiss();
             }
 
             @Override
-            public void onFailure(Call<TarjetaResponse> call, Throwable t) {
-                Toast.makeText(getContext(), "Error de red: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+            public void onError(String mensaje) {
+                Toast.makeText(getContext(), "Error al añadir tarjeta", Toast.LENGTH_SHORT).show();
             }
         });
     }

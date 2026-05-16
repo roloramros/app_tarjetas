@@ -7,6 +7,7 @@ public class SessionManager {
     private static final String PREF_NAME = "LimiTxSession";
     private static final String KEY_TOKEN = "auth_token";
     private static final String KEY_USERNAME = "username";
+    private static final String KEY_USER_ID = "user_id";
     private static final String KEY_KEEP_LOGGED_IN = "keep_logged_in";
     private static final String KEY_SORT_ORDER = "sort_order";
     private static final String KEY_SUBSCRIPTION_ACTIVE = "subscription_active";
@@ -40,6 +41,14 @@ public class SessionManager {
 
     public String getUsername() {
         return prefs.getString(KEY_USERNAME, "");
+    }
+
+    public void saveUserId(String userId) {
+        prefs.edit().putString(KEY_USER_ID, userId).apply();
+    }
+
+    public String getUserId() {
+        return prefs.getString(KEY_USER_ID, null);
     }
 
     public void setKeepLoggedIn(boolean keep) {

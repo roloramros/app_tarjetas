@@ -7,7 +7,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.codram.limitx.data.api.TransaccionResponse;
+import com.codram.limitx.data.local.entity.TransaccionEntity;
+import java.math.BigDecimal;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -17,16 +18,16 @@ import java.util.Locale;
 
 public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdapter.ViewHolder> {
     public interface OnItemClickListener {
-        void onItemClick(TransaccionResponse transaccion);
+        void onItemClick(TransaccionEntity transaccion);
     }
 
-    private List<TransaccionResponse> transacciones;
+    private List<TransaccionEntity> transacciones;
     private OnItemClickListener listener;
     private final DateTimeFormatter inputFormatter = DateTimeFormatter.ISO_DATE_TIME;
     private final DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("dd/MM");
     private final java.text.DecimalFormat numberFormat;
 
-    public TransaccionesAdapter(List<TransaccionResponse> transacciones, OnItemClickListener listener) {
+    public TransaccionesAdapter(List<TransaccionEntity> transacciones, OnItemClickListener listener) {
         this.transacciones = transacciones;
         this.listener = listener;
         
@@ -52,14 +53,14 @@ public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdap
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        TransaccionResponse t = transacciones.get(position);
+        TransaccionEntity t = transacciones.get(position);
 
         // Formatear fecha con posible asterisco
         String fechaFormateada = "";
         try {
-            LocalDateTime dateTime = LocalDateTime.parse(t.getFecha(), inputFormatter);
+            LocalDateTime dateTime = LocalDateTime.parse(t.fecha, inputFormatter);
             fechaFormateada = "(" + dateTime.format(outputFormatter) + ")";
-            if (t.getDescripcion() != null && !t.getDescripcion().isEmpty()) {
+            if (t.descripcion != null && !t.descripcion.isEmpty()) {
                 fechaFormateada += "*";
             }
         } catch (Exception e) {
@@ -69,9 +70,9 @@ public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdap
         // Formatear monto
         String montoFormateado;
         if (numberFormat != null) {
-            montoFormateado = numberFormat.format(t.getMonto());
+            montoFormateado = numberFormat.format(new BigDecimal(t.monto));
         } else {
-            montoFormateado = String.format(Locale.US, "%.0f", t.getMonto().doubleValue());
+            montoFormateado = String.format(Locale.US, "%.0f", new BigDecimal(t.monto).doubleValue());
         }
 
         holder.tvMonto.setText(montoFormateado);
