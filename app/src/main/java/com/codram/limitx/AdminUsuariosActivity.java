@@ -48,90 +48,95 @@ public class AdminUsuariosActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_admin_usuarios);
+        try {
+            setContentView(R.layout.activity_admin_usuarios);
 
-        sessionManager = new SessionManager(this);
+            sessionManager = new SessionManager(this);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Administración de Usuarios");
-        }
-
-        drawerLayout = findViewById(R.id.drawerLayout);
-        navigationView = findViewById(R.id.navigationView);
-
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawerLayout.addDrawerListener(toggle);
-        toggle.syncState();
-
-        // Footer Logout
-        View footerLogout = findViewById(R.id.nav_footer_logout);
-        if (footerLogout != null) {
-            footerLogout.setOnClickListener(v -> {
-                sessionManager.clearSession();
-                Intent intent = new Intent(this, LoginActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
-            });
-        }
-
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_add_card) {
-                AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
-                bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
-            } else if (id == R.id.nav_home) {
-                finish();
-            } else if (id == R.id.nav_admin_users) {
-                drawerLayout.closeDrawer(GravityCompat.START);
+            Toolbar toolbar = findViewById(R.id.toolbar);
+            setSupportActionBar(toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle("Administración de Usuarios");
             }
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return true;
-        });
 
-        spinnerUsuarios = findViewById(R.id.spinnerUsuarios);
-        layoutUserInfo = findViewById(R.id.layoutUserInfo);
-        tvSuscripcionActiva = findViewById(R.id.tvSuscripcionActiva);
-        tvSuscripcionHasta = findViewById(R.id.tvSuscripcionHasta);
-        tvLastLogin = findViewById(R.id.tvLastLogin);
-        tvFechaCreacion = findViewById(R.id.tvFechaCreacion);
-        tvCantidadTarjetas = findViewById(R.id.tvCantidadTarjetas);
-        tvCantidadTransacciones = findViewById(R.id.tvCantidadTransacciones);
-        tvTotalUsuarios = findViewById(R.id.tvTotalUsuarios);
-        tvTotalTarjetas = findViewById(R.id.tvTotalTarjetas);
-        tvTotalTransacciones = findViewById(R.id.tvTotalTransacciones);
-        btnEliminarUsuario = findViewById(R.id.btnEliminarUsuario);
-        progressBar = findViewById(R.id.progressBar);
+            drawerLayout = findViewById(R.id.drawerLayout);
+            navigationView = findViewById(R.id.navigationView);
 
-        cargarStatsGenerales();
-        cargarUsuarios();
+            ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
+                    this, drawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+            drawerLayout.addDrawerListener(toggle);
+            toggle.syncState();
 
-        spinnerUsuarios.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (position > 0) {
-                    usuarioSeleccionado = listaUsuarios.get(position - 1);
-                    mostrarInfoUsuario(usuarioSeleccionado);
-                } else {
-                    usuarioSeleccionado = null;
+            // Footer Logout
+            View footerLogout = findViewById(R.id.nav_footer_logout);
+            if (footerLogout != null) {
+                footerLogout.setOnClickListener(v -> {
+                    sessionManager.clearSession();
+                    Intent intent = new Intent(this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                });
+            }
+
+            navigationView.setNavigationItemSelectedListener(item -> {
+                int id = item.getItemId();
+                if (id == R.id.nav_add_card) {
+                    AddTarjetaBottomSheet bottomSheet = new AddTarjetaBottomSheet();
+                    bottomSheet.show(getSupportFragmentManager(), "AddTarjetaBottomSheet");
+                } else if (id == R.id.nav_home) {
+                    finish();
+                } else if (id == R.id.nav_admin_users) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
+                drawerLayout.closeDrawer(GravityCompat.START);
+                return true;
+            });
+
+            spinnerUsuarios = findViewById(R.id.spinnerUsuarios);
+            layoutUserInfo = findViewById(R.id.layoutUserInfo);
+            tvSuscripcionActiva = findViewById(R.id.tvSuscripcionActiva);
+            tvSuscripcionHasta = findViewById(R.id.tvSuscripcionHasta);
+            tvLastLogin = findViewById(R.id.tvLastLogin);
+            tvFechaCreacion = findViewById(R.id.tvFechaCreacion);
+            tvCantidadTarjetas = findViewById(R.id.tvCantidadTarjetas);
+            tvCantidadTransacciones = findViewById(R.id.tvCantidadTransacciones);
+            tvTotalUsuarios = findViewById(R.id.tvTotalUsuarios);
+            tvTotalTarjetas = findViewById(R.id.tvTotalTarjetas);
+            tvTotalTransacciones = findViewById(R.id.tvTotalTransacciones);
+            btnEliminarUsuario = findViewById(R.id.btnEliminarUsuario);
+            progressBar = findViewById(R.id.progressBar);
+
+            cargarStatsGenerales();
+            cargarUsuarios();
+
+            spinnerUsuarios.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    if (position > 0) {
+                        usuarioSeleccionado = listaUsuarios.get(position - 1);
+                        mostrarInfoUsuario(usuarioSeleccionado);
+                    } else {
+                        usuarioSeleccionado = null;
+                        layoutUserInfo.setVisibility(View.GONE);
+                    }
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
                     layoutUserInfo.setVisibility(View.GONE);
                 }
-            }
+            });
 
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                layoutUserInfo.setVisibility(View.GONE);
-            }
-        });
-
-        btnEliminarUsuario.setOnClickListener(v -> {
-            if (usuarioSeleccionado != null) {
-                confirmarEliminarUsuario();
-            }
-        });
+            btnEliminarUsuario.setOnClickListener(v -> {
+                if (usuarioSeleccionado != null) {
+                    confirmarEliminarUsuario();
+                }
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void cargarStatsGenerales() {

@@ -1,3 +1,14 @@
+Cambiar Version:
+sudo -u postgres psql -d limittx_bd -c "UPDATE public.app_version SET version = '1.3';"
+.setMessage("Hay una nueva actualización: LimiTx v1.3. Por favor, descarga la última versión.\n\n📌 Novedades:\n• Se añade la opción de mostrar el QR al dejar presionada una tarjeta\n• En el historial de transacciones se muestra el salfo actual de la tarjeta")
+
+
+
+
+Par conectarse a la BD:
+psql -U limittx_user -d limittx_bd -h localhost -W
+
+
 Crear la BD:
 CREATE DATABASE limittx_bd;
 CREATE USER limittx_user WITH PASSWORD 'EnzoDaniel*2023';
@@ -5,8 +16,8 @@ GRANT ALL PRIVILEGES ON DATABASE limittx_bd TO limittx_user;
 \c limittx_bd
 GRANT ALL ON SCHEMA public TO limittx_user;
 
-Par conectarse a la BD:
-psql -U limittx_user -d limittx_bd -h localhost -W
+
+
 
 
  Table "public.app_version"

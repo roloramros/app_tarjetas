@@ -18,7 +18,7 @@
     <string name="action_windows_config">Configurar Pestañas</string>
     <string name="action_logout">Cerrar Sesión</string>
     <string name="nav_home">Inicio</string>
-    <string name="nav_header_welcome">Bienvenido a LimiTx v1.0</string>
+    <string name="nav_header_welcome">Bienvenido a LimiTx v1.3</string>
     <string name="navigation_drawer_open">Abrir menú de navegación</string>
     <string name="navigation_drawer_close">Cerrar menú de navegación</string>
 
@@ -29,4 +29,9 @@
     <string name="label_moneda">Moneda</string>
     <string name="hint_nombre_tarjeta">Nombre de la tarjeta</string>
     <string name="hint_numero_tarjeta">Número de tarjeta</string>
+    <string name="title_qr_dialog">Código QR Transferencia</string>
+    <string name="hint_phone_number">Número de teléfono</string>
+    <string name="toast_phone_saved">Número guardado</string>
+    <string name="btn_close">Cerrar</string>
+    <string name="label_saldo_actual">Saldo Actual</string>
 </resources>

@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.ApiService;
+import com.codram.limitx.data.api.TarjetaResponse;
 import com.codram.limitx.data.api.TransaccionResponse;
 import com.codram.limitx.data.api.TransaccionUpdate;
 import com.codram.limitx.data.SessionManager;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import retrofit2.Call;
@@ -38,6 +40,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class HistorialActivity extends AppCompatActivity {
     private RecyclerView rvEntradas, rvSalidas;
+    private android.widget.TextView tvSaldoActual;
     private List<TransaccionResponse> entradas = new ArrayList<>();
     private List<TransaccionResponse> salidas = new ArrayList<>();
     private UUID tarjetaId;
@@ -56,14 +59,18 @@ public class HistorialActivity extends AppCompatActivity {
         }
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.rootLayout), (v, insets) -> {
-            androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return WindowInsetsCompat.CONSUMED;
-        });
+        View root = findViewById(R.id.rootLayout);
+        if (root != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+                androidx.core.graphics.Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                return WindowInsetsCompat.CONSUMED;
+            });
+        }
         
         rvEntradas = findViewById(R.id.rvEntradas);
         rvSalidas = findViewById(R.id.rvSalidas);
+        tvSaldoActual = findViewById(R.id.tvSaldoActual);
 
         rvEntradas.setLayoutManager(new LinearLayoutManager(this));
         rvSalidas.setLayoutManager(new LinearLayoutManager(this));
@@ -93,11 +100,59 @@ public class HistorialActivity extends AppCompatActivity {
         if (idStr != null) {
             tarjetaId = UUID.fromString(idStr);
             tarjetaNombre = getIntent().getStringExtra("TARJETA_NOMBRE");
+            
+            double saldoInicial = getIntent().getDoubleExtra("TARJETA_SALDO", 0.0);
+            String monedaInicial = getIntent().getStringExtra("TARJETA_MONEDA");
+            actualizarVistaSaldo(saldoInicial, monedaInicial);
+            
             cargarTransacciones(tarjetaId);
         }
     }
 
+    private void actualizarVistaSaldo(double saldo, String moneda) {
+        if (tvSaldoActual == null) return;
+        
+        String monedaStr = (moneda != null ? moneda : "");
+        try {
+            java.text.NumberFormat nf = java.text.NumberFormat.getNumberInstance(Locale.US);
+            if (nf instanceof java.text.DecimalFormat) {
+                java.text.DecimalFormat df = (java.text.DecimalFormat) nf;
+                java.text.DecimalFormatSymbols symbols = df.getDecimalFormatSymbols();
+                symbols.setGroupingSeparator(' ');
+                df.setDecimalFormatSymbols(symbols);
+                df.setMaximumFractionDigits(0);
+                String formatted = df.format(saldo);
+                tvSaldoActual.setText(formatted + " " + monedaStr);
+            } else {
+                tvSaldoActual.setText(String.format(Locale.US, "%.0f %s", saldo, monedaStr));
+            }
+        } catch (Exception e) {
+            tvSaldoActual.setText(String.format(Locale.US, "%.0f %s", saldo, monedaStr));
+        }
+    }
+
+    private void cargarSaldoTarjeta(UUID tarjetaId) {
+        String token = new SessionManager(this).getToken();
+        ApiClient.getService().getTarjetas("Bearer " + token).enqueue(new Callback<List<TarjetaResponse>>() {
+            @Override
+            public void onResponse(Call<List<TarjetaResponse>> call, Response<List<TarjetaResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    for (TarjetaResponse t : response.body()) {
+                        if (t.getId().equals(tarjetaId)) {
+                            actualizarVistaSaldo(t.getSaldo_tarjeta(), t.getMoneda());
+                            break;
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<TarjetaResponse>> call, Throwable t) {}
+        });
+    }
+
     private void cargarTransacciones(UUID tarjetaId) {
+        cargarSaldoTarjeta(tarjetaId);
         String token = new SessionManager(this).getToken();
         android.util.Log.d("LimiTxDebug", "Cargando transacciones para: " + tarjetaId);
 

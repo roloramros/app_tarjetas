@@ -10,11 +10,20 @@ public class SessionManager {
     private static final String KEY_KEEP_LOGGED_IN = "keep_logged_in";
     private static final String KEY_SORT_ORDER = "sort_order";
     private static final String KEY_SUBSCRIPTION_ACTIVE = "subscription_active";
+    private static final String KEY_PHONE_NUMBER = "phone_number";
 
     private SharedPreferences prefs;
 
     public SessionManager(Context context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    }
+
+    public void savePhoneNumber(String phoneNumber) {
+        prefs.edit().putString(KEY_PHONE_NUMBER, phoneNumber).apply();
+    }
+
+    public String getPhoneNumber() {
+        return prefs.getString(KEY_PHONE_NUMBER, "");
     }
 
     public void saveToken(String token) {

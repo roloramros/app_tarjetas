@@ -292,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkVersion() {
-        String currentVersion = "1.0"; // Coincide con strings.xml
+        String currentVersion = "1.3"; // Coincide con strings.xml
         ApiClient.getService().getAppVersion().enqueue(new Callback<AppVersionResponse>() {
             @Override
             public void onResponse(Call<AppVersionResponse> call, Response<AppVersionResponse> response) {
@@ -314,10 +314,10 @@ public class MainActivity extends AppCompatActivity {
     private void showUpdateDialog() {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Actualización disponible")
-                .setMessage("Hay una nueva actualización disponible de LimiTx. Por favor, descarga la última versión.")
+                .setMessage("Hay una nueva actualización: LimiTx v1.3. Por favor, descarga la última versión.\n\n📌 Novedades:\n• Se añade la opción de mostrar el QR al dejar presionada una tarjeta\n• En el historial de transacciones se muestra el saldo actual de la tarjeta")
                 .setPositiveButton("Actualizar", (dialog, which) -> {
                     android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
-                    intent.setData(android.net.Uri.parse("https://t.me/codram_software/3"));
+                    intent.setData(android.net.Uri.parse("https://t.me/codram_software/10"));
                     startActivity(intent);
                 })
                 .setNegativeButton("Cerrar", null)

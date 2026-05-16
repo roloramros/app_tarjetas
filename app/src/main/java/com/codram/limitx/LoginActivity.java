@@ -26,7 +26,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        checkVersion();
+
 
         sessionManager = new SessionManager(this);
 
@@ -85,37 +85,5 @@ public class LoginActivity extends AppCompatActivity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
-
-    private void checkVersion() {
-        String currentVersion = "1.0"; // Coincide con strings.xml
-        ApiClient.getService().getAppVersion().enqueue(new Callback<AppVersionResponse>() {
-            @Override
-            public void onResponse(Call<AppVersionResponse> call, Response<AppVersionResponse> response) {
-                if (response.isSuccessful() && response.body() != null) {
-                    String latestVersion = response.body().getVersion();
-                    if (!currentVersion.equals(latestVersion)) {
-                        showUpdateDialog();
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<AppVersionResponse> call, Throwable t) {
-                // Silently ignore
-            }
-        });
-    }
-
-    private void showUpdateDialog() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Actualización disponible")
-                .setMessage("Hay una nueva actualización disponible de LimiTx. Por favor, descarga la última versión.")
-                .setPositiveButton("Actualizar", (dialog, which) -> {
-                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW);
-                    intent.setData(android.net.Uri.parse("https://t.me/codram_software/3"));
-                    startActivity(intent);
-                })
-                .setNegativeButton("Cerrar", null)
-                .show();
-    }
+    
 }

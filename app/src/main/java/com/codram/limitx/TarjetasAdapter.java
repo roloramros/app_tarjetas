@@ -17,8 +17,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.codram.limitx.data.SessionManager;
 import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.TarjetaResponse;
+import com.codram.limitx.utils.QRUtils;
 import com.codram.limitx.utils.TransactionDialogHelper;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 import java.util.Locale;
 import retrofit2.Call;
@@ -73,6 +76,8 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
                 android.content.Intent intent = new android.content.Intent(v.getContext(), HistorialActivity.class);
                 intent.putExtra("TARJETA_ID", tarjeta.getId().toString());
                 intent.putExtra("TARJETA_NOMBRE", tarjeta.getNombre());
+                intent.putExtra("TARJETA_SALDO", tarjeta.getSaldo_tarjeta());
+                intent.putExtra("TARJETA_MONEDA", tarjeta.getMoneda());
                 v.getContext().startActivity(intent);
             });
 
@@ -87,11 +92,16 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
                 PopupMenu popup = new PopupMenu(v.getContext(), v);
                 popup.getMenu().add("Añadir Depósito");
                 popup.getMenu().add("Añadir Extracción");
+                popup.getMenu().add("Mostrar QR");
                 popup.getMenu().add("Editar Tarjeta");
                 popup.getMenu().add("Eliminar Tarjeta");
                 popup.setOnMenuItemClickListener(item -> {
                     if (item.getTitle().equals("Añadir Depósito") || item.getTitle().equals("Añadir Extracción")) {
                         TransactionDialogHelper.showTransactionDialog(v.getContext(), item.getTitle().toString(), tarjeta.getId(), tarjeta.getNombre(), transactionListener);
+                        return true;
+                    }
+                    else if (item.getTitle().equals("Mostrar QR")) {
+                        showQRDialog(v.getContext(), tarjeta.getNumero());
                         return true;
                     }
                     else if (item.getTitle().equals("Eliminar Tarjeta")) {
@@ -233,4 +243,44 @@ public class TarjetasAdapter extends RecyclerView.Adapter<TarjetasAdapter.Tarjet
             return "**** **** **** " + number.substring(number.length() - 4);
         }
     }
+
+    private void showQRDialog(Context context, String cardNumber) {
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_qr_tarjeta, null);
+        TextInputEditText etPhoneNumber = dialogView.findViewById(R.id.etPhoneNumber);
+        TextInputLayout tilPhoneNumber = dialogView.findViewById(R.id.tilPhoneNumber);
+        ImageView ivQRCode = dialogView.findViewById(R.id.ivQRCode);
+
+        SessionManager sessionManager = new SessionManager(context);
+        String savedPhone = sessionManager.getPhoneNumber();
+        etPhoneNumber.setText(savedPhone);
+
+        // Initial QR generation
+        updateQRCode(ivQRCode, cardNumber, savedPhone);
+
+        tilPhoneNumber.setEndIconOnClickListener(v -> {
+            String newPhone = etPhoneNumber.getText().toString().trim();
+            sessionManager.savePhoneNumber(newPhone);
+            updateQRCode(ivQRCode, cardNumber, newPhone);
+            Toast.makeText(context, R.string.toast_phone_saved, Toast.LENGTH_SHORT).show();
+        });
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(R.string.title_qr_dialog)
+                .setView(dialogView)
+                .setPositiveButton(R.string.btn_close, null)
+                .show();
+    }
+
+    private void updateQRCode(ImageView ivQRCode, String cardNumber, String phoneNumber) {
+        // TRANSFERMOVIL_ETECSA,TRANSFERENCIA,9200069993170665,55525290,
+        String qrContent = String.format("TRANSFERMOVIL_ETECSA,TRANSFERENCIA,%s,%s,", cardNumber, phoneNumber);
+        try {
+            android.graphics.Bitmap bitmap = QRUtils.generateQRCode(qrContent, 500, 500);
+            ivQRCode.setImageBitmap(bitmap);
+        } catch (com.google.zxing.WriterException e) {
+            e.printStackTrace();
+            Toast.makeText(ivQRCode.getContext(), "Error al generar QR", Toast.LENGTH_SHORT).show();
+        }
+    }
 }
+

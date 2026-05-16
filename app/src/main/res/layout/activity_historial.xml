@@ -22,7 +22,36 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            app:contentPadding="16dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_saldo_actual"
+                    android:textSize="14sp"
+                    android:textColor="?android:textColorSecondary"/>
+                <TextView
+                    android:id="@+id/tvSaldoActual"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0.00"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:textColor="?android:textColorPrimary"/>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
             android:layout_width="match_parent"

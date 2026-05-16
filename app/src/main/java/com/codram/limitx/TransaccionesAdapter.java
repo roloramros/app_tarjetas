@@ -29,10 +29,18 @@ public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdap
     public TransaccionesAdapter(List<TransaccionResponse> transacciones, OnItemClickListener listener) {
         this.transacciones = transacciones;
         this.listener = listener;
-        this.numberFormat = (java.text.DecimalFormat) java.text.NumberFormat.getNumberInstance(Locale.US);
-        java.text.DecimalFormatSymbols symbols = numberFormat.getDecimalFormatSymbols();
-        symbols.setGroupingSeparator(' ');
-        numberFormat.setDecimalFormatSymbols(symbols);
+        
+        java.text.NumberFormat nf = java.text.NumberFormat.getNumberInstance(Locale.US);
+        if (nf instanceof java.text.DecimalFormat) {
+            this.numberFormat = (java.text.DecimalFormat) nf;
+            java.text.DecimalFormatSymbols symbols = numberFormat.getDecimalFormatSymbols();
+            symbols.setGroupingSeparator(' ');
+            numberFormat.setDecimalFormatSymbols(symbols);
+            numberFormat.setMaximumFractionDigits(0);
+        } else {
+            // Fallback if not DecimalFormat
+            this.numberFormat = null;
+        }
     }
 
     @NonNull
@@ -59,7 +67,12 @@ public class TransaccionesAdapter extends RecyclerView.Adapter<TransaccionesAdap
         }
 
         // Formatear monto
-        String montoFormateado = numberFormat.format(t.getMonto());
+        String montoFormateado;
+        if (numberFormat != null) {
+            montoFormateado = numberFormat.format(t.getMonto());
+        } else {
+            montoFormateado = String.format(Locale.US, "%.0f", t.getMonto().doubleValue());
+        }
 
         holder.tvMonto.setText(montoFormateado);
         holder.tvFecha.setText(fechaFormateada);
