@@ -10,10 +10,11 @@ import uuid
 from database import engine, get_db, Base
 from models import Usuario, Tarjeta, Transaccion, AppVersion
 from schemas import (
-    UsuarioCreate, UsuarioUpdate, UsuarioResponse, AdminStatsResponse,
+    UsuarioCreate, UsuarioUpdate, UsuarioResponse,
     TokenResponse, LoginRequest,
     TarjetaCreate, TarjetaUpdate, TarjetaResponse,
-    TransaccionCreate, TransaccionUpdate, TransaccionResponse, AppVersionResponse
+    TransaccionCreate, TransaccionResponse, AppVersionResponse,
+    AdminStatsResponse
 )
 from utils import verify_password, hash_password, create_access_token, decode_token
 
@@ -79,12 +80,6 @@ async def login(
     return TokenResponse(access_token=token)
 
 # === CRUD Usuarios ===
-@app.get("/usuarios/me", response_model=UsuarioResponse)
-async def obtener_usuario_actual(
-    current_user: Usuario = Depends(get_current_user)
-):
-    return current_user
-
 @app.post("/usuarios", response_model=UsuarioResponse, status_code=201)
 async def crear_usuario(
     data: UsuarioCreate,
@@ -110,47 +105,22 @@ async def listar_usuarios(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    # Join with Tarjeta and Transaccion to get counts
-    # Subqueries are cleaner for multiple counts to avoid cartesian products
+    # Join to get counts
     query = select(
         Usuario,
-        select(func.count(Tarjeta.id)).where(Tarjeta.usuario_id == Usuario.id).scalar_subquery().label("cantidad_tarjetas"),
-        select(func.count(Transaccion.id))
-        .select_from(Transaccion)
-        .join(Tarjeta, Transaccion.tarjeta_id == Tarjeta.id)
-        .where(Tarjeta.usuario_id == Usuario.id)
-        .scalar_subquery()
-        .label("cantidad_transacciones")
-    ).order_by(Usuario.fecha_creacion.desc())
+        func.count(Tarjeta.id.distinct()).label("cantidad_tarjetas"),
+        func.count(Transaccion.id.distinct()).label("cantidad_transacciones")
+    ).outerjoin(Tarjeta).outerjoin(Tarjeta.transacciones).group_by(Usuario.id).order_by(Usuario.fecha_creacion.desc())
     
     result = await db.execute(query)
     usuarios_con_conteo = []
-    for usuario, cant_tarjetas, cant_trans in result:
+    for usuario, cant_tarjetas, cant_transacciones in result:
         u_dict = UsuarioResponse.model_validate(usuario).model_dump()
         u_dict["cantidad_tarjetas"] = cant_tarjetas
-        u_dict["cantidad_transacciones"] = cant_trans
+        u_dict["cantidad_transacciones"] = cant_transacciones
         usuarios_con_conteo.append(u_dict)
         
     return usuarios_con_conteo
-
-@app.get("/admin/stats", response_model=AdminStatsResponse)
-async def obtener_stats_admin(
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
-    # Simple check for admin role (Rolo) - Case insensitive to match frontend
-    if not current_user.nombre or current_user.nombre.lower() != "rolo":
-        raise HTTPException(status_code=403, detail="Acceso denegado")
-        
-    total_usuarios = await db.scalar(select(func.count(Usuario.id)))
-    total_tarjetas = await db.scalar(select(func.count(Tarjeta.id)))
-    total_transacciones = await db.scalar(select(func.count(Transaccion.id)))
-    
-    return AdminStatsResponse(
-        total_usuarios=total_usuarios or 0,
-        total_tarjetas=total_tarjetas or 0,
-        total_transacciones=total_transacciones or 0
-    )
 
 @app.get("/usuarios/{user_id}", response_model=UsuarioResponse)
 async def obtener_usuario(
@@ -204,6 +174,28 @@ async def eliminar_usuario(
     await db.commit()
     return {"msg": f"Usuario {user.nombre} eliminado"}
 
+@app.get("/admin/stats", response_model=AdminStatsResponse)
+async def obtener_estadisticas_globales(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    # Check if user is Rolo (Admin)
+    if current_user.nombre.lower() != "rolo":
+         raise HTTPException(status_code=403, detail="No tienes permisos para ver esta información")
+
+    stmt = select(
+        select(func.count()).select_from(Usuario).scalar_subquery().label("total_usuarios"),
+        select(func.count()).select_from(Tarjeta).scalar_subquery().label("total_tarjetas"),
+        select(func.count()).select_from(Transaccion).scalar_subquery().label("total_transacciones")
+    )
+    result = await db.execute(stmt)
+    return result.mappings().first()
+
+@app.get("/usuarios/me", response_model=UsuarioResponse)
+async def obtener_usuario_actual(
+    current_user: Usuario = Depends(get_current_user)
+):
+    return current_user
 
 # === CRUD Tarjetas ===
 @app.post("/tarjetas", response_model=TarjetaResponse, status_code=201)
@@ -392,51 +384,3 @@ async def listar_transacciones_mes(
         .order_by(Transaccion.fecha.asc())
     )
     return result.scalars().all()
-
-@app.put("/transacciones/{transaccion_id}", response_model=TransaccionResponse)
-async def actualizar_transaccion(
-    transaccion_id: uuid.UUID,
-    data: TransaccionUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
-    # Fetch transaction and verify ownership through card
-    query = select(Transaccion).join(Tarjeta).where(
-        Transaccion.id == transaccion_id,
-        Tarjeta.usuario_id == current_user.id
-    )
-    result = await db.execute(query)
-    transaccion = result.scalars().first()
-    if not transaccion:
-        raise HTTPException(status_code=404, detail="Transacción no encontrada")
-    
-    if data.monto is not None:
-        transaccion.monto = data.monto
-    if data.descripcion is not None:
-        transaccion.descripcion = data.descripcion
-    if data.fecha is not None:
-        transaccion.fecha = data.fecha
-        
-    await db.commit()
-    await db.refresh(transaccion)
-    return transaccion
-
-@app.delete("/transacciones/{transaccion_id}", status_code=200)
-async def eliminar_transaccion(
-    transaccion_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
-):
-    # Fetch transaction and verify ownership through card
-    query = select(Transaccion).join(Tarjeta).where(
-        Transaccion.id == transaccion_id,
-        Tarjeta.usuario_id == current_user.id
-    )
-    result = await db.execute(query)
-    transaccion = result.scalars().first()
-    if not transaccion:
-        raise HTTPException(status_code=404, detail="Transacción no encontrada")
-    
-    await db.delete(transaccion)
-    await db.commit()
-    return {"msg": "Transacción eliminada"}

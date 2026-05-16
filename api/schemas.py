@@ -24,12 +24,10 @@ class UsuarioResponse(UsuarioBase):
     cantidad_tarjetas: Optional[int] = 0
     cantidad_transacciones: Optional[int] = 0
     model_config = ConfigDict(from_attributes=True)
-
 class AdminStatsResponse(BaseModel):
     total_usuarios: int
     total_tarjetas: int
     total_transacciones: int
-    model_config = ConfigDict(from_attributes=True)
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -77,11 +75,6 @@ class TransaccionBase(BaseModel):
 
 class TransaccionCreate(TransaccionBase):
     pass
-
-class TransaccionUpdate(BaseModel):
-    monto: Optional[Decimal] = None
-    descripcion: Optional[str] = None
-    fecha: Optional[datetime] = None
 
 class TransaccionResponse(TransaccionBase):
     id: uuid.UUID
