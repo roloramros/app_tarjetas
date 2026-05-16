@@ -84,11 +84,7 @@ public class LimiTxRepository {
 
             if (ConnectivityHelper.isOnline(context)) {
                 try {
-                    // Nota: Se asume que existe un endpoint /tarjetas/{id}/transacciones 
-                    // que devuelve el historial completo. Si no existe, este paso podría fallar 
-                    // o requerir ajuste según la API real.
-                    // Para el propósito del prompt, usaremos getTransaccionesMes si no hay otro.
-                    Response<List<TransaccionResponse>> response = api.getTransaccionesMes(token, UUID.fromString(tarjetaId)).execute();
+                    Response<List<TransaccionResponse>> response = api.getTransacciones(token, UUID.fromString(tarjetaId)).execute();
                     if (response.isSuccessful() && response.body() != null) {
                         List<TransaccionEntity> entities = new ArrayList<>();
                         for (TransaccionResponse r : response.body()) {
@@ -106,7 +102,29 @@ public class LimiTxRepository {
     }
 
     public void getTransaccionesMes(String tarjetaId, String token, Callback<List<TransaccionEntity>> callback) {
-        getTransacciones(tarjetaId, token, callback);
+        executor.execute(() -> {
+            // Para el mes actual, no guardamos en Room de forma masiva para no mezclar con historial completo
+            // o simplemente mostramos lo que hay en Room que coincida.
+            // Para simplificar y seguir el flujo, llamamos a la API y devolvemos.
+            if (ConnectivityHelper.isOnline(context)) {
+                try {
+                    Response<List<TransaccionResponse>> response = api.getTransaccionesMes(token, UUID.fromString(tarjetaId)).execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<TransaccionEntity> entities = new ArrayList<>();
+                        for (TransaccionResponse r : response.body()) {
+                            entities.add(TransaccionEntity.fromResponse(r));
+                        }
+                        mainHandler.post(() -> callback.onSuccess(entities));
+                    }
+                } catch (IOException e) {
+                    mainHandler.post(() -> callback.onError(e.getMessage()));
+                }
+            } else {
+                // Si offline, devolvemos lo que hay en Room (que es el historial completo)
+                List<TransaccionEntity> cached = db.transaccionDao().getByTarjeta(tarjetaId);
+                mainHandler.post(() -> callback.onSuccess(cached));
+            }
+        });
     }
 
     public void crearTransaccion(TransaccionRequest request, String token, Callback<TransaccionEntity> callback) {
@@ -121,7 +139,10 @@ public class LimiTxRepository {
             entity.tipo = request.getTipo();
             entity.monto = request.getMonto().toString();
             entity.descripcion = request.getDescripcion();
+            entity.subtipo = request.getSubtipo();
+            entity.afecta_limite = request.isAfectaLimite();
             entity.fecha = request.getFecha();
+            entity.fechaCreacion = String.valueOf(System.currentTimeMillis());
             
             db.transaccionDao().insertOrReplace(entity);
             mainHandler.post(() -> callback.onSuccess(entity));

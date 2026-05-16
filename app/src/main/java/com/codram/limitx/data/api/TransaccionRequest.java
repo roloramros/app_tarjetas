@@ -21,4 +21,12 @@ public class TransaccionRequest {
         this.afecta_limite = afecta_limite;
         this.fecha = fecha;
     }
+
+    public UUID getTarjetaId() { return tarjeta_id; }
+    public String getTipo() { return tipo; }
+    public BigDecimal getMonto() { return monto; }
+    public String getDescripcion() { return descripcion; }
+    public String getSubtipo() { return subtipo; }
+    public boolean isAfectaLimite() { return afecta_limite; }
+    public String getFecha() { return fecha; }
 }

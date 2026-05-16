@@ -9,6 +9,8 @@ public class TransaccionResponse {
     private String tipo;
     private BigDecimal monto;
     private String descripcion;
+    private String subtipo;
+    private boolean afecta_limite;
     private String fecha;
 
     public UUID getId() { return id; }
@@ -16,5 +18,7 @@ public class TransaccionResponse {
     public String getTipo() { return tipo; }
     public BigDecimal getMonto() { return monto; }
     public String getDescripcion() { return descripcion; }
+    public String getSubtipo() { return subtipo; }
+    public boolean isAfectaLimite() { return afecta_limite; }
     public String getFecha() { return fecha; }
 }

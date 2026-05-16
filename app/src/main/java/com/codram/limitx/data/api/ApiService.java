@@ -55,6 +55,12 @@ public interface ApiService {
         @Path("tarjeta_id") UUID tarjeta_id
     );
 
+    @GET("/tarjetas/{tarjeta_id}/transacciones")
+    Call<List<TransaccionResponse>> getTransacciones(
+        @Header("Authorization") String token,
+        @Path("tarjeta_id") UUID tarjeta_id
+    );
+
     @GET("/tarjetas")
     Call<List<TarjetaResponse>> getTarjetas(@Header("Authorization") String token);
 

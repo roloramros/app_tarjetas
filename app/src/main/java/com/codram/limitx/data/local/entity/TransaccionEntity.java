@@ -31,9 +31,9 @@ public class TransaccionEntity {
         entity.tipo = r.getTipo();
         entity.monto = r.getMonto().toString();
         entity.descripcion = r.getDescripcion();
+        entity.subtipo = r.getSubtipo();
+        entity.afecta_limite = r.isAfectaLimite();
         entity.fecha = r.getFecha();
-        // subtipo, afecta_limite y fechaCreacion pueden no venir en TransaccionResponse según el archivo actual, 
-        // pero se incluyen en la entidad según el prompt.
         return entity;
     }
 
