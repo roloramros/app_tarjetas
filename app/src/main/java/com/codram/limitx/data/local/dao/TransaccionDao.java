@@ -14,6 +14,9 @@ public interface TransaccionDao {
     @Query("SELECT * FROM transacciones WHERE tarjetaId = :tarjetaId ORDER BY fecha DESC")
     List<TransaccionEntity> getByTarjeta(String tarjetaId);
 
+    @Query("SELECT * FROM transacciones WHERE id = :id")
+    TransaccionEntity getById(String id);
+
     @Query("SELECT * FROM transacciones WHERE tarjetaId = :tarjetaId AND fecha >= :desde ORDER BY fecha ASC")
     List<TransaccionEntity> getByTarjetaDesde(String tarjetaId, String desde);
 

@@ -15,6 +15,9 @@ public interface TarjetaDao {
     @Query("SELECT * FROM tarjetas WHERE usuarioId = :usuarioId")
     List<TarjetaEntity> getByUsuario(String usuarioId);
 
+    @Query("SELECT * FROM tarjetas WHERE id = :id")
+    TarjetaEntity getById(String id);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertOrReplace(TarjetaEntity tarjeta);
 

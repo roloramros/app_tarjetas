@@ -132,11 +132,21 @@ public class LimiTxRepository {
 
     public void actualizarTransaccion(String transaccionId, TransaccionUpdate update, String token, Callback<TransaccionEntity> callback) {
         executor.execute(() -> {
+            TransaccionEntity localTx = db.transaccionDao().getById(transaccionId);
+            if (localTx == null) {
+                mainHandler.post(() -> callback.onError("Transacción no encontrada"));
+                return;
+            }
+
+            String tarjetaId = localTx.tarjetaId;
+
             // Actualizar en Room inmediatamente (optimistic update)
             db.transaccionDao().actualizarCampos(transaccionId, 
                     update.getMonto().toString(), 
                     update.getDescripcion(), 
                     update.getFecha());
+            
+            recalcularSaldosTarjeta(tarjetaId);
             
             if (ConnectivityHelper.isOnline(context)) {
                 try {
@@ -146,6 +156,7 @@ public class LimiTxRepository {
                     if (response.isSuccessful() && response.body() != null) {
                         TransaccionEntity updated = TransaccionEntity.fromResponse(response.body());
                         db.transaccionDao().insertOrReplace(updated);
+                        recalcularSaldosTarjeta(tarjetaId);
                         mainHandler.post(() -> callback.onSuccess(updated));
                     } else {
                         // Encolar para sync posterior
@@ -194,6 +205,7 @@ public class LimiTxRepository {
             entity.fechaCreacion = String.valueOf(System.currentTimeMillis());
             
             db.transaccionDao().insertOrReplace(entity);
+            recalcularSaldosTarjeta(entity.tarjetaId);
             mainHandler.post(() -> callback.onSuccess(entity));
 
             if (ConnectivityHelper.isOnline(context)) {
@@ -216,7 +228,13 @@ public class LimiTxRepository {
 
     public void eliminarTransaccion(String transaccionId, String token, Callback<Void> callback) {
         executor.execute(() -> {
-            db.transaccionDao().deleteById(transaccionId);
+            TransaccionEntity localTx = db.transaccionDao().getById(transaccionId);
+            if (localTx != null) {
+                String tarjetaId = localTx.tarjetaId;
+                db.transaccionDao().deleteById(transaccionId);
+                recalcularSaldosTarjeta(tarjetaId);
+            }
+            
             mainHandler.post(() -> callback.onSuccess(null));
 
             if (ConnectivityHelper.isOnline(context)) {
@@ -295,5 +313,47 @@ public class LimiTxRepository {
 
     private void queueSync(String op, String payload, String localId) {
         db.syncQueueDao().insert(new SyncQueueEntity(op, payload, localId));
+    }
+
+    private void recalcularSaldosTarjeta(String tarjetaId) {
+        TarjetaEntity tarjeta = db.tarjetaDao().getById(tarjetaId);
+        if (tarjeta == null) return;
+
+        List<TransaccionEntity> transacciones = db.transaccionDao().getByTarjeta(tarjetaId);
+        
+        double saldoTotal = 0;
+        double consumoMesActual = 0;
+
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int yearActual = cal.get(java.util.Calendar.YEAR);
+        int monthActual = cal.get(java.util.Calendar.MONTH);
+
+        for (TransaccionEntity tx : transacciones) {
+            double monto = Double.parseDouble(tx.monto);
+            
+            if ("entrada".equalsIgnoreCase(tx.tipo)) {
+                saldoTotal += monto;
+            } else {
+                saldoTotal -= monto;
+            }
+
+            if ("salida".equalsIgnoreCase(tx.tipo) && tx.afecta_limite) {
+                try {
+                    String[] parts = tx.fecha.split("-");
+                    int txYear = Integer.parseInt(parts[0]);
+                    int txMonth = Integer.parseInt(parts[1]) - 1;
+                    
+                    if (txYear == yearActual && txMonth == monthActual) {
+                        consumoMesActual += monto;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+
+        tarjeta.saldoTarjeta = saldoTotal;
+        tarjeta.extraccionDisponible = tarjeta.limiteMensual - consumoMesActual;
+        tarjeta.depositoDisponible = tarjeta.limiteMensual - saldoTotal - consumoMesActual;
+
+        db.tarjetaDao().insertOrReplace(tarjeta);
     }
 }
