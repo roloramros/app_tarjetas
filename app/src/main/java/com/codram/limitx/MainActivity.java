@@ -22,9 +22,12 @@ import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.AppVersionResponse;
 import com.codram.limitx.data.local.entity.TarjetaEntity;
 import com.codram.limitx.utils.ConnectivityHelper;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 import com.codram.limitx.data.sync.SyncScheduler;
+import com.codram.limitx.data.sync.SyncWorker;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -285,6 +288,11 @@ public class MainActivity extends AppCompatActivity {
     private void actualizarBannerConectividad() {
         boolean online = ConnectivityHelper.isOnline(this);
         tvOfflineBanner.setVisibility(online ? View.GONE : View.VISIBLE);
+
+        // Si hay conexión, disparar sincronización si hay pendientes
+        if (online) {
+            dispararSyncSiHayPendientes();
+        }
         
         if (online && repository.haySincronizacionPendiente()) {
             // Mostrar indicador de sincronización mientras trabaja el worker
@@ -310,6 +318,20 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
         }
+    }
+
+    private void dispararSyncSiHayPendientes() {
+        // Correr en background para no bloquear UI
+        new Thread(() -> {
+            boolean hayPendientes = repository.haySincronizacionPendiente();
+            if (hayPendientes) {
+                OneTimeWorkRequest syncWork = new OneTimeWorkRequest.Builder(SyncWorker.class)
+                        .addTag("sync_queue")
+                        .build();
+                WorkManager.getInstance(getApplicationContext())
+                        .enqueueUniqueWork("sync_pendientes", ExistingWorkPolicy.KEEP, syncWork);
+            }
+        }).start();
     }
 
     private void distribuirTarjetas() {

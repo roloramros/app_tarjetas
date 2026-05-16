@@ -3,6 +3,7 @@ package com.codram.limitx.data.sync;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -43,18 +44,18 @@ public class SyncWorker extends Worker {
 
     @NonNull
     @Override
-    public Result doWork() {
+    public ListenableWorker.Result doWork() {
         AppDatabase db = AppDatabase.getInstance(getApplicationContext());
         SessionManager sessionManager = new SessionManager(getApplicationContext());
         String token = sessionManager.getToken();
 
         if (token == null) {
-            return Result.failure();
+            return ListenableWorker.Result.failure();
         }
 
         List<SyncQueueEntity> pendientes = db.syncQueueDao().getPendientes();
         if (pendientes.isEmpty()) {
-            return Result.success();
+            return ListenableWorker.Result.success();
         }
 
         ApiService api = ApiClient.getService();
@@ -126,7 +127,7 @@ public class SyncWorker extends Worker {
                 // Error de red, reintentar con el worker completo
                 item.estado = "PENDIENTE";
                 db.syncQueueDao().update(item);
-                return Result.retry();
+                return ListenableWorker.Result.retry();
             } catch (Exception e) {
                 // Error fatal en este item
                 item.intentos++;
@@ -135,6 +136,6 @@ public class SyncWorker extends Worker {
             }
         }
 
-        return Result.success();
+        return ListenableWorker.Result.success();
     }
 }
