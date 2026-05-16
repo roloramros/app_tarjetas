@@ -227,20 +227,17 @@ public class HistorialActivity extends AppCompatActivity {
                         TransaccionUpdate update = new TransaccionUpdate(monto, descripcion, fechaSeleccionada[0]);
                         
                         String token = new SessionManager(this).getToken();
-                        ApiClient.getService().actualizarTransaccion("Bearer " + token, UUID.fromString(transaccion.id), update)
-                            .enqueue(new Callback<TransaccionResponse>() {
+                        repository.actualizarTransaccion(transaccion.id, update, "Bearer " + token,
+                            new LimiTxRepository.Callback<TransaccionEntity>() {
                                 @Override
-                                public void onResponse(Call<TransaccionResponse> call, Response<TransaccionResponse> response) {
-                                    if (response.isSuccessful()) {
-                                        Toast.makeText(HistorialActivity.this, "Actualizado", Toast.LENGTH_SHORT).show();
-                                        cargarTransacciones(tarjetaId);
-                                    } else {
-                                        Toast.makeText(HistorialActivity.this, "Error al actualizar", Toast.LENGTH_SHORT).show();
-                                    }
+                                public void onSuccess(TransaccionEntity result) {
+                                    Toast.makeText(HistorialActivity.this, "Actualizado", Toast.LENGTH_SHORT).show();
+                                    cargarTransacciones(tarjetaId); // Recargar
                                 }
+
                                 @Override
-                                public void onFailure(Call<TransaccionResponse> call, Throwable t) {
-                                    Toast.makeText(HistorialActivity.this, "Error de red", Toast.LENGTH_SHORT).show();
+                                public void onError(String mensaje) {
+                                    Toast.makeText(HistorialActivity.this, "Error al actualizar", Toast.LENGTH_SHORT).show();
                                 }
                             });
                     } catch (Exception e) {

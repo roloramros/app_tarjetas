@@ -12,4 +12,8 @@ public class TransaccionUpdate {
         this.descripcion = descripcion;
         this.fecha = fecha;
     }
+
+    public BigDecimal getMonto() { return monto; }
+    public String getDescripcion() { return descripcion; }
+    public String getFecha() { return fecha; }
 }

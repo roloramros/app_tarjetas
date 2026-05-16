@@ -11,6 +11,7 @@ import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.LoginRequest;
 import com.codram.limitx.data.api.TokenResponse;
 import com.codram.limitx.data.api.UsuarioResponse;
+import com.codram.limitx.data.sync.SyncScheduler;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import retrofit2.Call;
@@ -72,7 +73,7 @@ public class LoginActivity extends AppCompatActivity {
                         public void onResponse(Call<UsuarioResponse> call2, Response<UsuarioResponse> response2) {
                             if (response2.isSuccessful() && response2.body() != null) {
                                 sessionManager.saveUserId(response2.body().getId().toString());
-                                sessionManager.saveUsername(response2.body().getNombreUsuario());
+                                sessionManager.saveUsername(response2.body().getNombre());
                             } else {
                                 sessionManager.saveUsername(user);
                             }
@@ -98,6 +99,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void goToMain() {
+        SyncScheduler.scheduleSync(this);
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

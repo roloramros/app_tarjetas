@@ -10,6 +10,9 @@ import com.codram.limitx.data.api.TarjetaRequest;
 import com.codram.limitx.data.api.TarjetaResponse;
 import com.codram.limitx.data.api.TransaccionRequest;
 import com.codram.limitx.data.api.TransaccionResponse;
+import com.codram.limitx.data.api.TransaccionUpdate;
+import com.codram.limitx.data.api.UsuarioResponse;
+import com.codram.limitx.data.sync.TransaccionUpdatePayload;
 import com.codram.limitx.data.local.AppDatabase;
 import com.codram.limitx.data.local.entity.SyncQueueEntity;
 import com.codram.limitx.data.local.entity.TarjetaEntity;
@@ -123,6 +126,52 @@ public class LimiTxRepository {
                 // Si offline, devolvemos lo que hay en Room (que es el historial completo)
                 List<TransaccionEntity> cached = db.transaccionDao().getByTarjeta(tarjetaId);
                 mainHandler.post(() -> callback.onSuccess(cached));
+            }
+        });
+    }
+
+    public void actualizarTransaccion(String transaccionId, TransaccionUpdate update, String token, Callback<TransaccionEntity> callback) {
+        executor.execute(() -> {
+            // Actualizar en Room inmediatamente (optimistic update)
+            db.transaccionDao().actualizarCampos(transaccionId, 
+                    update.getMonto().toString(), 
+                    update.getDescripcion(), 
+                    update.getFecha());
+            
+            if (ConnectivityHelper.isOnline(context)) {
+                try {
+                    Response<TransaccionResponse> response = api.actualizarTransaccion(
+                        token, UUID.fromString(transaccionId), update
+                    ).execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        TransaccionEntity updated = TransaccionEntity.fromResponse(response.body());
+                        db.transaccionDao().insertOrReplace(updated);
+                        mainHandler.post(() -> callback.onSuccess(updated));
+                    } else {
+                        // Encolar para sync posterior
+                        TransaccionUpdatePayload payload = new TransaccionUpdatePayload();
+                        payload.monto = update.getMonto().toString();
+                        payload.descripcion = update.getDescripcion();
+                        payload.fecha = update.getFecha();
+                        queueSync("UPDATE_TRANSACCION", gson.toJson(payload), transaccionId);
+                        mainHandler.post(() -> callback.onError("Error del servidor"));
+                    }
+                } catch (IOException e) {
+                    // Encolar para sync posterior
+                    TransaccionUpdatePayload payload = new TransaccionUpdatePayload();
+                    payload.monto = update.getMonto().toString();
+                    payload.descripcion = update.getDescripcion();
+                    payload.fecha = update.getFecha();
+                    queueSync("UPDATE_TRANSACCION", gson.toJson(payload), transaccionId);
+                    mainHandler.post(() -> callback.onError("Sin conexión"));
+                }
+            } else {
+                TransaccionUpdatePayload payload = new TransaccionUpdatePayload();
+                payload.monto = update.getMonto().toString();
+                payload.descripcion = update.getDescripcion();
+                payload.fecha = update.getFecha();
+                queueSync("UPDATE_TRANSACCION", gson.toJson(payload), transaccionId);
+                mainHandler.post(() -> callback.onSuccess(null)); // Éxito local
             }
         });
     }

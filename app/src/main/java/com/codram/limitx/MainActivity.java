@@ -22,6 +22,9 @@ import com.codram.limitx.data.api.ApiClient;
 import com.codram.limitx.data.api.AppVersionResponse;
 import com.codram.limitx.data.local.entity.TarjetaEntity;
 import com.codram.limitx.utils.ConnectivityHelper;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
+import com.codram.limitx.data.sync.SyncScheduler;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -282,6 +285,31 @@ public class MainActivity extends AppCompatActivity {
     private void actualizarBannerConectividad() {
         boolean online = ConnectivityHelper.isOnline(this);
         tvOfflineBanner.setVisibility(online ? View.GONE : View.VISIBLE);
+        
+        if (online && repository.haySincronizacionPendiente()) {
+            // Mostrar indicador de sincronización mientras trabaja el worker
+            tvOfflineBanner.setVisibility(View.VISIBLE);
+            tvOfflineBanner.setText("Sincronizando datos pendientes...");
+            tvOfflineBanner.setBackgroundColor(android.graphics.Color.parseColor("#4CAF50")); // Verde
+            
+            SyncScheduler.scheduleSync(this);
+            
+            // Observar el estado del trabajo para ocultar el banner al terminar
+            WorkManager.getInstance(this)
+                .getWorkInfosForUniqueWorkLiveData("limitx_sync")
+                .observe(this, workInfoList -> {
+                    if (workInfoList == null || workInfoList.isEmpty()) return;
+                    WorkInfo info = workInfoList.get(0);
+                    if (info.getState() == WorkInfo.State.SUCCEEDED) {
+                        tvOfflineBanner.setVisibility(View.GONE);
+                        tvOfflineBanner.setText("Sin conexión — mostrando datos guardados");
+                        tvOfflineBanner.setBackgroundColor(android.graphics.Color.parseColor("#FFC107"));
+                        loadTarjetas(); // Refrescar UI con datos sincronizados
+                    } else if (info.getState() == WorkInfo.State.FAILED) {
+                        tvOfflineBanner.setVisibility(View.GONE);
+                    }
+                });
+        }
     }
 
     private void distribuirTarjetas() {

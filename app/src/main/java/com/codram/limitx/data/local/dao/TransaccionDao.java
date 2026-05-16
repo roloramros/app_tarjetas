@@ -28,4 +28,7 @@ public interface TransaccionDao {
 
     @Query("DELETE FROM transacciones WHERE tarjetaId = :tarjetaId")
     void deleteByTarjeta(String tarjetaId);
+
+    @Query("UPDATE transacciones SET monto = :monto, descripcion = :descripcion, fecha = :fecha WHERE id = :id")
+    void actualizarCampos(String id, String monto, String descripcion, String fecha);
 }
